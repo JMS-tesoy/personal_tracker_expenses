@@ -77,8 +77,12 @@ class _BillsScreenState extends State<BillsScreen>
             }).toList();
 
             setState(() {
-              _unpaid = all.where((BillModel b) => b.isUnpaid).toList();
-              _overdue = all.where((BillModel b) => b.isOverdue).toList();
+              _unpaid = all
+                  .where((BillModel b) => !b.isPaid && !b.isOverdue)
+                  .toList();
+              _overdue = all
+                  .where((BillModel b) => !b.isPaid && b.isOverdue)
+                  .toList();
               _paid = all.where((BillModel b) => b.isPaid).toList();
               isLoading = false;
             });

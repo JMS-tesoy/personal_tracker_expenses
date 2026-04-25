@@ -1,3 +1,5 @@
+import '../../../core/utils/bill_due_date_helper.dart';
+
 class BillModel {
   const BillModel({
     required this.id,
@@ -31,9 +33,13 @@ class BillModel {
   final String? remarks;
   final DateTime createdAt;
 
-  bool get isPaid => status.toLowerCase() == 'paid';
-  bool get isOverdue => status.toLowerCase() == 'overdue';
-  bool get isUnpaid => status.toLowerCase() == 'unpaid';
+  bool get isPaid => status.trim().toLowerCase() == 'paid';
+  bool get isOverdue {
+    return status.trim().toLowerCase() == 'overdue' ||
+        BillDueDateHelper.isOverdue(dueDay: dueDay, status: status);
+  }
+
+  bool get isUnpaid => !isPaid && !isOverdue;
 
   String get displayStatus {
     if (isPaid) return 'paid';

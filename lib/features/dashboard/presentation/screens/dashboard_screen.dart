@@ -6,6 +6,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../loans/domain/loan.dart';
 import '../../../loans/presentation/screens/loan_details_screen.dart';
 import '../../../loans/presentation/widgets/loan_card.dart';
+import '../../../reminders/presentation/screens/reminders_screen.dart';
 import '../widgets/recent_transaction_tile.dart';
 import '../widgets/summary_card.dart';
 
@@ -186,6 +187,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (result == true) {
       fetchDashboardData();
     }
+  }
+
+  void openReminders() {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const RemindersScreen()),
+    );
   }
 
   void showPaydayAlertIfNeeded() {
@@ -388,6 +396,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               isLarge: true,
               valueColor: balanceColor(colorScheme),
               subtitle: 'Based on recorded income and expenses',
+              actionIcon: Icons.notifications_none_outlined,
+              actionTooltip: 'Reminders',
+              onActionPressed: openReminders,
             ),
             const SizedBox(height: 12),
             Row(
