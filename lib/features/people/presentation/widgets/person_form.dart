@@ -1,21 +1,14 @@
 import 'package:flutter/material.dart';
 
 class PersonFormData {
-  const PersonFormData({
-    required this.name,
-    this.role,
-  });
+  const PersonFormData({required this.name, this.role});
 
   final String name;
   final String? role;
 }
 
 class PersonForm extends StatefulWidget {
-  const PersonForm({
-    super.key,
-    required this.onSubmit,
-    this.isSaving = false,
-  });
+  const PersonForm({super.key, required this.onSubmit, this.isSaving = false});
 
   final void Function(PersonFormData data) onSubmit;
   final bool isSaving;
@@ -40,17 +33,14 @@ class _PersonFormState extends State<PersonForm> {
     final String role = _roleController.text.trim();
 
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name is required.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Name is required.')));
       return;
     }
 
     widget.onSubmit(
-      PersonFormData(
-        name: name,
-        role: role.isEmpty ? null : role,
-      ),
+      PersonFormData(name: name, role: role.isEmpty ? null : role),
     );
   }
 
@@ -66,7 +56,11 @@ class _PersonFormState extends State<PersonForm> {
           child: CircleAvatar(
             radius: 40,
             backgroundColor: colors.primaryContainer,
-            child: Icon(Icons.person, size: 40, color: colors.onPrimaryContainer),
+            child: Icon(
+              Icons.person,
+              size: 40,
+              color: colors.onPrimaryContainer,
+            ),
           ),
         ),
         const SizedBox(height: 24),

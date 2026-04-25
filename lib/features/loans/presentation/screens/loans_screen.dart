@@ -48,13 +48,10 @@ class _LoansScreenState extends State<LoansScreen>
         .listen(
           (List<Map<String, dynamic>> data) {
             if (!mounted) return;
-            final List<LoanModel> all =
-                data.map(LoanModel.fromMap).toList();
+            final List<LoanModel> all = data.map(LoanModel.fromMap).toList();
             setState(() {
-              _activeLoans =
-                  all.where((LoanModel l) => !l.isPaid).toList();
-              _paidLoans =
-                  all.where((LoanModel l) => l.isPaid).toList();
+              _activeLoans = all.where((LoanModel l) => !l.isPaid).toList();
+              _paidLoans = all.where((LoanModel l) => l.isPaid).toList();
               isLoading = false;
             });
           },
@@ -104,9 +101,9 @@ class _LoansScreenState extends State<LoansScreen>
           Text(
             emptyMessage,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
         ],
       );

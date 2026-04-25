@@ -1,44 +1,75 @@
 import 'package:flutter/material.dart';
 
-class ProofUploadBox extends StatelessWidget {
-  const ProofUploadBox({super.key});
+import '../../data/attachment_service.dart';
+import '../../domain/attachment.dart';
+
+class ProofUploadBox extends StatefulWidget {
+  const ProofUploadBox({
+    super.key,
+    required this.billId,
+    this.uploadedByPersonId,
+    required this.onUploaded,
+  });
+
+  final String billId;
+  final String? uploadedByPersonId;
+  final Future<void> Function(AttachmentModel attachment) onUploaded;
+
+  @override
+  State<ProofUploadBox> createState() => _ProofUploadBoxState();
+}
+
+class _ProofUploadBoxState extends State<ProofUploadBox> {
+  final AttachmentService _service = AttachmentService();
+  bool _uploading = false;
+
+  Future<void> _upload() async {
+    if (widget.billId.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to upload payment proof')),
+      );
+      return;
+    }
+
+    setState(() => _uploading = true);
+    try {
+      final AttachmentModel attachment = await _service.pickAndUpload(
+        billId: widget.billId,
+        uploadedByPersonId: widget.uploadedByPersonId,
+      );
+      if (!mounted) return;
+      await widget.onUploaded(attachment);
+    } on PaymentProofUploadCancelled {
+      return;
+    } catch (error, stackTrace) {
+      debugPrint('Failed to upload payment proof: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to upload payment proof')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
-
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: colors.outlineVariant,
-          width: 1.5,
-          style: BorderStyle.none,
+      child: OutlinedButton.icon(
+        onPressed: _uploading ? null : _upload,
+        icon: _uploading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.upload_file_outlined, size: 18),
+        label: Text(_uploading ? 'Uploading...' : 'Upload Payment Proof'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         ),
-        borderRadius: BorderRadius.circular(12),
-        color: colors.surfaceContainerHighest.withValues(alpha: 0.4),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(Icons.upload_file_outlined,
-              size: 40, color: colors.onSurfaceVariant),
-          const SizedBox(height: 12),
-          Text(
-            'Upload payment proof',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colors.onSurface,
-                ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Screenshot/photo support will be added next.',
-            style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant),
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }

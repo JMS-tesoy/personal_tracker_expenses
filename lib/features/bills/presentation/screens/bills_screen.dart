@@ -45,8 +45,9 @@ class _BillsScreenState extends State<BillsScreen>
 
   Future<void> _loadPeopleAndSubscribe() async {
     try {
-      final List<dynamic> people =
-          await supabase.from('people').select('id, name');
+      final List<dynamic> people = await supabase
+          .from('people')
+          .select('id, name');
       _peopleNames = <String, String>{
         for (final dynamic p in people)
           (p as Map<String, dynamic>)['id'].toString(): p['name'].toString(),
@@ -65,10 +66,11 @@ class _BillsScreenState extends State<BillsScreen>
             if (!mounted) return;
             final List<BillModel> all = data.map((Map<String, dynamic> row) {
               // Inject resolved names into the map before parsing
-              final Map<String, dynamic> enriched =
-                  Map<String, dynamic>.from(row);
-              enriched['assigned_person_name'] = _peopleNames[
-                  row['assigned_person_id']?.toString()];
+              final Map<String, dynamic> enriched = Map<String, dynamic>.from(
+                row,
+              );
+              enriched['assigned_person_name'] =
+                  _peopleNames[row['assigned_person_id']?.toString()];
               enriched['paid_by_person_name'] =
                   _peopleNames[row['paid_by_person_id']?.toString()];
               return BillModel.fromMap(enriched);
@@ -145,8 +147,9 @@ class _BillsScreenState extends State<BillsScreen>
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _toDbDate(DateTime date) {
@@ -155,8 +158,7 @@ class _BillsScreenState extends State<BillsScreen>
     return '${date.year}-$m-$d';
   }
 
-  Widget _buildSection(
-      String title, List<BillModel> bills, Color titleColor) {
+  Widget _buildSection(String title, List<BillModel> bills, Color titleColor) {
     if (bills.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -169,14 +171,13 @@ class _BillsScreenState extends State<BillsScreen>
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: titleColor,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  color: titleColor,
+                ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: titleColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -214,15 +215,17 @@ class _BillsScreenState extends State<BillsScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(Icons.check_circle_outline,
-                size: 56, color: colors.onSurfaceVariant),
+            Icon(
+              Icons.check_circle_outline,
+              size: 56,
+              color: colors.onSurfaceVariant,
+            ),
             const SizedBox(height: 16),
             Text(
               'No unpaid bills',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
@@ -251,15 +254,17 @@ class _BillsScreenState extends State<BillsScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(Icons.receipt_long_outlined,
-                size: 56, color: colors.onSurfaceVariant),
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 56,
+              color: colors.onSurfaceVariant,
+            ),
             const SizedBox(height: 16),
             Text(
               'No paid bills yet',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
           ],
         ),
@@ -268,9 +273,7 @@ class _BillsScreenState extends State<BillsScreen>
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-      children: <Widget>[
-        _buildSection('Paid', _paid, const Color(0xFFA7D7B5)),
-      ],
+      children: <Widget>[_buildSection('Paid', _paid, const Color(0xFFA7D7B5))],
     );
   }
 
@@ -293,17 +296,13 @@ class _BillsScreenState extends State<BillsScreen>
                       children: <Widget>[
                         Text(
                           'Bills',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
+                          style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Track and manage your monthly bills',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w600,
@@ -326,10 +325,13 @@ class _BillsScreenState extends State<BillsScreen>
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 1),
+                                  horizontal: 7,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.error
-                                      .withValues(alpha: 0.15),
+                                  color: colorScheme.error.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
@@ -354,10 +356,13 @@ class _BillsScreenState extends State<BillsScreen>
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 1),
+                                  horizontal: 7,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.primary
-                                      .withValues(alpha: 0.15),
+                                  color: colorScheme.primary.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
@@ -378,10 +383,7 @@ class _BillsScreenState extends State<BillsScreen>
                   Expanded(
                     child: TabBarView(
                       controller: _tabController,
-                      children: <Widget>[
-                        _buildUnpaidTab(),
-                        _buildPaidTab(),
-                      ],
+                      children: <Widget>[_buildUnpaidTab(), _buildPaidTab()],
                     ),
                   ),
                 ],

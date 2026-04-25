@@ -11,7 +11,13 @@ class PersonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
     final String initials = person.name.isNotEmpty
-        ? person.name.trim().split(' ').map((String w) => w[0]).take(2).join().toUpperCase()
+        ? person.name
+              .trim()
+              .split(' ')
+              .map((String w) => w[0])
+              .take(2)
+              .join()
+              .toUpperCase()
         : '?';
 
     return Card(
@@ -21,10 +27,16 @@ class PersonCard extends StatelessWidget {
           backgroundColor: colors.primaryContainer,
           child: Text(
             initials,
-            style: TextStyle(color: colors.onPrimaryContainer, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: colors.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        title: Text(person.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(
+          person.name,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         subtitle: person.role != null && person.role!.isNotEmpty
             ? Text(person.role!, style: TextStyle(color: colors.outline))
             : null,

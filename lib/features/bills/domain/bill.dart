@@ -81,7 +81,8 @@ class BillModel {
       status: map['status']?.toString() ?? 'unpaid',
       notes: _emptyToNull(map['notes']),
       remarks: _emptyToNull(map['remarks']),
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );
   }

@@ -39,9 +39,9 @@ class _PeopleScreenState extends State<PeopleScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load people.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to load people.')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -68,40 +68,41 @@ class _PeopleScreenState extends State<PeopleScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _people.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Icon(Icons.people_outline,
-                            size: 64, color: colors.outline),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No people yet',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Add people to assign bills, payments, and responsibilities.',
-                          style: TextStyle(color: colors.outline),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(Icons.people_outline, size: 64, color: colors.outline),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No people yet',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadPeople,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 8, horizontal: 16),
-                    itemCount: _people.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      return PersonCard(person: _people[index]);
-                    },
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Add people to assign bills, payments, and responsibilities.',
+                      style: TextStyle(color: colors.outline),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadPeople,
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 16,
+                ),
+                itemCount: _people.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return PersonCard(person: _people[index]);
+                },
+              ),
+            ),
     );
   }
 }
