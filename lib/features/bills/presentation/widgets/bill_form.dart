@@ -39,8 +39,10 @@ class _BillFormState extends State<BillForm> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _dueDayController = TextEditingController(text: '15');
-  final TextEditingController _paymentMethodController = TextEditingController();
+  final TextEditingController _dueDayController =
+      TextEditingController(text: '15');
+  final TextEditingController _paymentMethodController =
+      TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
 
@@ -87,7 +89,8 @@ class _BillFormState extends State<BillForm> {
 
   void _submit() {
     final String name = _nameController.text.trim();
-    final String amountRaw = _amountController.text.trim().replaceAll(',', '');
+    final String amountRaw =
+        _amountController.text.trim().replaceAll(',', '');
     final double? amount = double.tryParse(amountRaw);
     final int? dueDay = int.tryParse(_dueDayController.text.trim());
     final String paymentMethod = _paymentMethodController.text.trim();
@@ -126,7 +129,8 @@ class _BillFormState extends State<BillForm> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -155,14 +159,9 @@ class _BillFormState extends State<BillForm> {
           controller: _paymentMethodController,
         ),
         const SizedBox(height: 14),
-
-        // Assigned to — person picker
         Text(
           'Assigned to',
-          style: TextStyle(
-            fontSize: 13,
-            color: colors.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 13, color: colors.onSurfaceVariant),
         ),
         const SizedBox(height: 6),
         _loadingPeople
@@ -173,7 +172,7 @@ class _BillFormState extends State<BillForm> {
                     style: TextStyle(color: colors.error),
                   )
                 : DropdownButtonFormField<String>(
-                    value: _selectedPersonId,
+                    initialValue: _selectedPersonId,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       hintText: 'Select a person',
@@ -190,7 +189,6 @@ class _BillFormState extends State<BillForm> {
                       setState(() => _selectedPersonId = value);
                     },
                   ),
-
         const SizedBox(height: 14),
         AppTextField(
           label: 'Notes (optional)',

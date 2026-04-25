@@ -4,8 +4,10 @@ class BillModel {
     required this.name,
     required this.amount,
     required this.dueDay,
-    this.assignedTo,
-    this.paidBy,
+    this.assignedPersonId,
+    this.assignedPersonName,
+    this.paidByPersonId,
+    this.paidByPersonName,
     this.paidOn,
     required this.paymentMethod,
     required this.status,
@@ -18,8 +20,10 @@ class BillModel {
   final String name;
   final double amount;
   final int dueDay;
-  final String? assignedTo;
-  final String? paidBy;
+  final String? assignedPersonId;
+  final String? assignedPersonName;
+  final String? paidByPersonId;
+  final String? paidByPersonName;
   final DateTime? paidOn;
   final String paymentMethod;
   final String status;
@@ -40,7 +44,8 @@ class BillModel {
   BillModel copyWith({
     String? status,
     DateTime? paidOn,
-    String? paidBy,
+    String? paidByPersonId,
+    String? paidByPersonName,
     String? remarks,
   }) {
     return BillModel(
@@ -48,8 +53,10 @@ class BillModel {
       name: name,
       amount: amount,
       dueDay: dueDay,
-      assignedTo: assignedTo,
-      paidBy: paidBy ?? this.paidBy,
+      assignedPersonId: assignedPersonId,
+      assignedPersonName: assignedPersonName,
+      paidByPersonId: paidByPersonId ?? this.paidByPersonId,
+      paidByPersonName: paidByPersonName ?? this.paidByPersonName,
       paidOn: paidOn ?? this.paidOn,
       paymentMethod: paymentMethod,
       status: status ?? this.status,
@@ -65,15 +72,16 @@ class BillModel {
       name: map['name'].toString(),
       amount: _parseAmount(map['amount']),
       dueDay: _parseInt(map['due_day'], fallback: 1),
-      assignedTo: _emptyToNull(map['assigned_to']),
-      paidBy: _emptyToNull(map['paid_by']),
+      assignedPersonId: _emptyToNull(map['assigned_person_id']),
+      assignedPersonName: _emptyToNull(map['assigned_person_name']),
+      paidByPersonId: _emptyToNull(map['paid_by_person_id']),
+      paidByPersonName: _emptyToNull(map['paid_by_person_name']),
       paidOn: _parseDate(map['paid_on']),
       paymentMethod: map['payment_method']?.toString() ?? '',
       status: map['status']?.toString() ?? 'unpaid',
       notes: _emptyToNull(map['notes']),
       remarks: _emptyToNull(map['remarks']),
-      createdAt:
-          DateTime.tryParse(map['created_at']?.toString() ?? '') ??
+      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );
   }

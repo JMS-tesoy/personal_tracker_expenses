@@ -14,26 +14,45 @@ class BillsScreen extends StatefulWidget {
   State<BillsScreen> createState() => _BillsScreenState();
 }
 
-class _BillsScreenState extends State<BillsScreen> {
+class _BillsScreenState extends State<BillsScreen>
+    with SingleTickerProviderStateMixin {
   final SupabaseClient supabase = Supabase.instance.client;
 
   late final StreamSubscription<List<Map<String, dynamic>>> _subscription;
+  late final TabController _tabController;
 
   bool isLoading = true;
   List<BillModel> _unpaid = <BillModel>[];
   List<BillModel> _overdue = <BillModel>[];
   List<BillModel> _paid = <BillModel>[];
 
+  // People name lookup map: id -> name
+  Map<String, String> _peopleNames = <String, String>{};
+
   @override
   void initState() {
     super.initState();
-    _subscribe();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadPeopleAndSubscribe();
   }
 
   @override
   void dispose() {
     _subscription.cancel();
+    _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPeopleAndSubscribe() async {
+    try {
+      final List<dynamic> people =
+          await supabase.from('people').select('id, name');
+      _peopleNames = <String, String>{
+        for (final dynamic p in people)
+          (p as Map<String, dynamic>)['id'].toString(): p['name'].toString(),
+      };
+    } catch (_) {}
+    _subscribe();
   }
 
   void _subscribe() {
@@ -44,12 +63,20 @@ class _BillsScreenState extends State<BillsScreen> {
         .listen(
           (List<Map<String, dynamic>> data) {
             if (!mounted) return;
-            final List<BillModel> all = data.map(BillModel.fromMap).toList();
+            final List<BillModel> all = data.map((Map<String, dynamic> row) {
+              // Inject resolved names into the map before parsing
+              final Map<String, dynamic> enriched =
+                  Map<String, dynamic>.from(row);
+              enriched['assigned_person_name'] = _peopleNames[
+                  row['assigned_person_id']?.toString()];
+              enriched['paid_by_person_name'] =
+                  _peopleNames[row['paid_by_person_id']?.toString()];
+              return BillModel.fromMap(enriched);
+            }).toList();
+
             setState(() {
-              _unpaid =
-                  all.where((BillModel b) => b.isUnpaid).toList();
-              _overdue =
-                  all.where((BillModel b) => b.isOverdue).toList();
+              _unpaid = all.where((BillModel b) => b.isUnpaid).toList();
+              _overdue = all.where((BillModel b) => b.isOverdue).toList();
               _paid = all.where((BillModel b) => b.isPaid).toList();
               isLoading = false;
             });
@@ -67,10 +94,7 @@ class _BillsScreenState extends State<BillsScreen> {
     try {
       await supabase
           .from('bills')
-          .update(<String, dynamic>{
-            'status': 'paid',
-            'paid_on': today,
-          })
+          .update(<String, dynamic>{'status': 'paid', 'paid_on': today})
           .eq('id', bill.id);
     } catch (_) {
       _showMessage('Failed to mark bill as paid.');
@@ -81,10 +105,7 @@ class _BillsScreenState extends State<BillsScreen> {
     try {
       await supabase
           .from('bills')
-          .update(<String, dynamic>{
-            'status': 'unpaid',
-            'paid_on': null,
-          })
+          .update(<String, dynamic>{'status': 'unpaid', 'paid_on': null})
           .eq('id', bill.id);
     } catch (_) {
       _showMessage('Failed to mark bill as unpaid.');
@@ -124,9 +145,8 @@ class _BillsScreenState extends State<BillsScreen> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _toDbDate(DateTime date) {
@@ -135,7 +155,8 @@ class _BillsScreenState extends State<BillsScreen> {
     return '${date.year}-$m-$d';
   }
 
-  Widget _buildSection(String title, List<BillModel> bills, Color titleColor) {
+  Widget _buildSection(
+      String title, List<BillModel> bills, Color titleColor) {
     if (bills.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -148,13 +169,14 @@ class _BillsScreenState extends State<BillsScreen> {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: titleColor,
-                ),
+                      fontWeight: FontWeight.w900,
+                      color: titleColor,
+                    ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: titleColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -183,73 +205,184 @@ class _BillsScreenState extends State<BillsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 56,
-            color: colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No bills yet',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
+  Widget _buildUnpaidTab() {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    final bool empty = _unpaid.isEmpty && _overdue.isEmpty;
+
+    if (empty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(Icons.check_circle_outline,
+                size: 56, color: colors.onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text(
+              'No unpaid bills',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Tap + to add your first bill.',
-            style: TextStyle(color: colorScheme.onSurfaceVariant),
-          ),
-        ],
-      ),
+            const SizedBox(height: 6),
+            Text(
+              "You're all caught up!",
+              style: TextStyle(color: colors.onSurfaceVariant),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      children: <Widget>[
+        _buildSection('Overdue', _overdue, colors.error),
+        _buildSection('Unpaid', _unpaid, colors.primary),
+      ],
+    );
+  }
+
+  Widget _buildPaidTab() {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+
+    if (_paid.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(Icons.receipt_long_outlined,
+                size: 56, color: colors.onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text(
+              'No paid bills yet',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      children: <Widget>[
+        _buildSection('Paid', _paid, const Color(0xFFA7D7B5)),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final bool allEmpty =
-        _unpaid.isEmpty && _overdue.isEmpty && _paid.isEmpty;
 
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
-            : allEmpty
-            ? _buildEmptyState()
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(
-                    'Bills',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Bills',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Track and manage your monthly bills',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Track and manage your monthly bills',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  const SizedBox(height: 12),
+                  TabBar(
+                    controller: _tabController,
+                    tabs: <Tab>[
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            const Text('Unpaid'),
+                            if (_unpaid.isNotEmpty ||
+                                _overdue.isNotEmpty) ...<Widget>[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.error
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '${_unpaid.length + _overdue.length}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                    color: colorScheme.error,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Tab(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            const Text('Paid'),
+                            if (_paid.isNotEmpty) ...<Widget>[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary
+                                      .withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '${_paid.length}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                  _buildSection('Overdue', _overdue, colorScheme.error),
-                  _buildSection('Unpaid', _unpaid, colorScheme.primary),
-                  _buildSection(
-                    'Paid',
-                    _paid,
-                    const Color(0xFFA7D7B5),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: <Widget>[
+                        _buildUnpaidTab(),
+                        _buildPaidTab(),
+                      ],
+                    ),
                   ),
                 ],
               ),

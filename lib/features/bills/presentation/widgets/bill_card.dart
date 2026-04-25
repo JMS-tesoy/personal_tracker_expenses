@@ -74,12 +74,22 @@ class BillCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if (bill.assignedTo != null) ...<Widget>[
+                      if (bill.assignedPersonName != null) ...<Widget>[
                         const SizedBox(height: 3),
                         Text(
-                          bill.assignedTo!,
+                          'Assigned to: ${bill.assignedPersonName!}',
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                      if (bill.isPaid && bill.paidByPersonName != null) ...<Widget>[
+                        const SizedBox(height: 3),
+                        Text(
+                          'Paid by: ${bill.paidByPersonName!}',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFFA7D7B5),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -111,9 +121,7 @@ class BillCard extends StatelessWidget {
                 Expanded(
                   child: _BillMetric(
                     label: 'Payment method',
-                    value: bill.paymentMethod.isEmpty
-                        ? '—'
-                        : bill.paymentMethod,
+                    value: bill.paymentMethod.isEmpty ? '—' : bill.paymentMethod,
                   ),
                 ),
               ],
@@ -220,9 +228,9 @@ class _BillMetric extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-          ),
+                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
         ),
         const SizedBox(height: 4),
         Text(
