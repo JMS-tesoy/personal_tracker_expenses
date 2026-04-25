@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../../domain/loan.dart';
 import '../widgets/loan_card.dart';
 import 'add_loan_screen.dart';
@@ -41,9 +42,11 @@ class _LoansScreenState extends State<LoansScreen>
   }
 
   void _subscribeToLoans() {
+    final String userId = requireCurrentUserId();
     _subscription = supabase
         .from('loans')
         .stream(primaryKey: <String>['id'])
+        .eq('user_id', userId)
         .order('created_at', ascending: false)
         .listen(
           (List<Map<String, dynamic>> data) {

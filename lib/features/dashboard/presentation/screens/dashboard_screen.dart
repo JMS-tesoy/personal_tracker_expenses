@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../loans/domain/loan.dart';
@@ -34,13 +35,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> fetchDashboardData() async {
     try {
+      final String userId = requireCurrentUserId();
       final now = DateTime.now();
       final startOfMonth = DateTime(now.year, now.month);
       final startOfNextMonth = DateTime(now.year, now.month + 1);
 
       final categoriesData = await supabase
           .from('categories')
-          .select('id, name, type');
+          .select('id, name, type')
+          .eq('user_id', userId);
       final categoriesById = {
         for (final category in categoriesData)
           category['id'].toString(): _DashboardCategory.fromMap(
@@ -53,12 +56,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .select(
             'id, amount, type, category_id, payment_method, transaction_date, created_at',
           )
+          .eq('user_id', userId)
           .gte('transaction_date', databaseDate(startOfMonth))
           .lt('transaction_date', databaseDate(startOfNextMonth))
           .order('created_at', ascending: false);
       final loansData = await supabase
           .from('loans')
           .select()
+          .eq('user_id', userId)
           .order('next_due_date', ascending: true);
 
       final parsedTransactions = transactionsData.map<_DashboardTransaction?>((
@@ -194,6 +199,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context,
       MaterialPageRoute<void>(builder: (_) => const RemindersScreen()),
     );
+  }
+
+  Future<void> signOut() async {
+    await supabase.auth.signOut();
   }
 
   void showPaydayAlertIfNeeded() {
@@ -371,11 +380,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
         children: [
-          Text(
-            'Payday Tracker',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Payday Tracker',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () {
+                  signOut();
+                },
+                icon: const Icon(Icons.logout),
+                tooltip: 'Sign out',
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(

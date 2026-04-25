@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../../../bills/domain/bill.dart';
 import '../../domain/reminder.dart';
 import '../widgets/reminder_card.dart';
@@ -30,9 +31,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final String userId = requireCurrentUserId();
       final List<dynamic> people = await _supabase
           .from('people')
-          .select('id, name');
+          .select('id, name')
+          .eq('user_id', userId);
       final Map<String, String> peopleNames = <String, String>{
         for (final dynamic p in people)
           (p as Map<String, dynamic>)['id'].toString(): p['name'].toString(),
@@ -41,6 +44,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
       final List<dynamic> rows = await _supabase
           .from('bills')
           .select()
+          .eq('user_id', userId)
           .order('due_day', ascending: true);
       final List<ReminderModel> reminders =
           rows

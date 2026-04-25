@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../widgets/bill_form.dart';
 
 class AddBillScreen extends StatefulWidget {
@@ -18,7 +19,9 @@ class _AddBillScreenState extends State<AddBillScreen> {
     setState(() => _isSaving = true);
 
     try {
+      final String userId = requireCurrentUserId();
       await _supabase.from('bills').insert(<String, dynamic>{
+        'user_id': userId,
         'name': data.name,
         'amount': data.amount,
         'due_day': data.dueDay,

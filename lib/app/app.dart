@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../features/auth/presentation/screens/auth_gate.dart';
 import '../shared/widgets/app_texture_background.dart';
-import 'main_navigation.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -77,7 +77,7 @@ class App extends StatelessWidget {
       builder: (context, child) {
         return AppTextureBackground(child: child ?? const SizedBox.shrink());
       },
-      home: const MainNavigation(),
+      home: const AuthGate(),
     );
   }
 }

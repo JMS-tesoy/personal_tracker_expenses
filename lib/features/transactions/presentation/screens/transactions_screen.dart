@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/auth/current_user.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../domain/transaction.dart';
 import 'add_transaction_screen.dart';
@@ -25,11 +26,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Future<void> fetchTransactions() async {
+    final String userId = requireCurrentUserId();
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month);
     final startOfNextMonth = DateTime(now.year, now.month + 1);
 
-    final categoriesData = await supabase.from('categories').select('id, name');
+    final categoriesData = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('user_id', userId);
     final categoryNamesById = {
       for (final category in categoriesData)
         category['id'].toString(): category['name'].toString(),
@@ -40,6 +45,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         .select(
           'id, amount, type, category_id, payment_method, note, transaction_date, created_at',
         )
+        .eq('user_id', userId)
         .gte('transaction_date', databaseDate(startOfMonth))
         .lt('transaction_date', databaseDate(startOfNextMonth))
         .order('created_at', ascending: false);

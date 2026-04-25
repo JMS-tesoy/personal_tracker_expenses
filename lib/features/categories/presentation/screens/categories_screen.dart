@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../../domain/category.dart';
 import '../widgets/category_form_dialog.dart';
 
@@ -24,9 +25,11 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   Future<void> fetchCategories() async {
     try {
+      final String userId = requireCurrentUserId();
       final data = await supabase
           .from('categories')
           .select()
+          .eq('user_id', userId)
           .order('created_at', ascending: false);
 
       if (!mounted) return;
@@ -59,7 +62,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
 
     try {
+      final String userId = requireCurrentUserId();
       await supabase.from('categories').insert({
+        'user_id': userId,
         'name': result.name,
         'type': result.type,
       });
@@ -92,10 +97,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     }
 
     try {
+      final String userId = requireCurrentUserId();
       await supabase
           .from('categories')
           .update({'name': result.name, 'type': result.type})
-          .eq('id', category.id);
+          .eq('id', category.id)
+          .eq('user_id', userId);
 
       await fetchCategories();
       showMessage('Category updated.');
@@ -128,7 +135,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     if (shouldDelete != true) return;
 
     try {
-      await supabase.from('categories').delete().eq('id', category.id);
+      final String userId = requireCurrentUserId();
+      await supabase
+          .from('categories')
+          .delete()
+          .eq('id', category.id)
+          .eq('user_id', userId);
 
       await fetchCategories();
       showMessage('Category deleted.');
@@ -234,10 +246,12 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       return true;
     }
 
+    final String userId = requireCurrentUserId();
     final data = await supabase
         .from('categories')
         .select('id, name, type')
-        .eq('type', type);
+        .eq('type', type)
+        .eq('user_id', userId);
 
     return List<Map<String, dynamic>>.from(data).any((category) {
       if (excludeId != null && category['id'].toString() == excludeId) {

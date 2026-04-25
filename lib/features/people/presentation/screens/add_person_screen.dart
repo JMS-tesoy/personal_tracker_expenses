@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../widgets/person_form.dart';
 
 class AddPersonScreen extends StatefulWidget {
@@ -18,7 +19,9 @@ class _AddPersonScreenState extends State<AddPersonScreen> {
     setState(() => _isSaving = true);
 
     try {
+      final String userId = requireCurrentUserId();
       await _supabase.from('people').insert(<String, dynamic>{
+        'user_id': userId,
         'name': data.name,
         'role': data.role,
       });

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/auth/current_user.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/screens/categories_screen.dart';
@@ -37,7 +38,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> fetchCategoryTypes() async {
-    final data = await supabase.from('categories').select('type').order('type');
+    final String userId = requireCurrentUserId();
+    final data = await supabase
+        .from('categories')
+        .select('type')
+        .eq('user_id', userId)
+        .order('type');
     final types = data
         .map<String>((item) => item['type'].toString())
         .toSet()
@@ -57,10 +63,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> fetchCategories() async {
+    final String userId = requireCurrentUserId();
     final data = await supabase
         .from('categories')
         .select()
         .eq('type', type)
+        .eq('user_id', userId)
         .order('name');
 
     setState(() {
@@ -107,7 +115,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
 
     final transactionType = type == 'income' ? 'income' : 'expense';
+    final String userId = requireCurrentUserId();
     final transactionData = {
+      'user_id': userId,
       'amount': amount,
       'type': transactionType,
       'category_id': selectedCategory.id,

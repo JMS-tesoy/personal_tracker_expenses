@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../domain/loan.dart';
@@ -75,10 +76,12 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
 
     if (loan.paidPaydays >= loan.totalPaydays) {
       // Edge-case: paydays exhausted but status not yet updated.
+      final String userId = requireCurrentUserId();
       await supabase
           .from('loans')
           .update(<String, dynamic>{'status': 'paid', 'remaining_balance': 0.0})
-          .eq('id', loan.id);
+          .eq('id', loan.id)
+          .eq('user_id', userId);
       if (!mounted) return;
       Navigator.pop(context, true);
       return;
@@ -162,6 +165,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
     setState(() => isSaving = true);
 
     try {
+      final String userId = requireCurrentUserId();
       final String newStatus = isFinal ? 'paid' : 'active';
       final Map<String, dynamic> updates = <String, dynamic>{
         'paid_paydays': newPaidPaydays,
@@ -173,7 +177,11 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
         updates['next_due_date'] = _toDbDate(nextDueDate);
       }
 
-      await supabase.from('loans').update(updates).eq('id', loan.id);
+      await supabase
+          .from('loans')
+          .update(updates)
+          .eq('id', loan.id)
+          .eq('user_id', userId);
 
       if (!mounted) return;
       Navigator.pop(context, true);

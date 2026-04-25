@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../people/domain/person.dart';
 
@@ -59,9 +60,11 @@ class _BillFormState extends State<BillForm> {
 
   Future<void> _loadPeople() async {
     try {
+      final String userId = requireCurrentUserId();
       final List<dynamic> response = await _supabase
           .from('people')
           .select()
+          .eq('user_id', userId)
           .order('name', ascending: true);
 
       if (!mounted) return;

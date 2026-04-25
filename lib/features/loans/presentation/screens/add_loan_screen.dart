@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
@@ -161,7 +162,9 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
     setState(() => isSaving = true);
 
     try {
+      final String userId = requireCurrentUserId();
       await supabase.from('loans').insert(<String, dynamic>{
+        'user_id': userId,
         'name': name,
         'lender': lender.isEmpty ? null : lender,
         'original_amount': originalAmount,

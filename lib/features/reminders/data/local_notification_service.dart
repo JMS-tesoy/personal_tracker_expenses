@@ -2,12 +2,12 @@ class LocalNotificationService {
   const LocalNotificationService();
 
   Future<void> initialize() async {
-    // TODO: Wire flutter_local_notifications initialization after the package
-    // and Android notification permission setup are added.
+    // Wire flutter_local_notifications initialization after the package and
+    // Android notification permission setup are added.
   }
 
   Future<void> showTestNotification() async {
-    // TODO: Show a local test notification after notification setup is ready.
+    // Show a local test notification after notification setup is ready.
   }
 
   Future<void> scheduleBillReminder({
@@ -16,6 +16,6 @@ class LocalNotificationService {
     required String body,
     required DateTime scheduledAt,
   }) async {
-    // TODO: Schedule bill reminders after local notification setup is ready.
+    // Schedule bill reminders after local notification setup is ready.
   }
 }

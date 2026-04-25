@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../../domain/person.dart';
 import '../widgets/person_card.dart';
 import 'add_person_screen.dart';
@@ -26,9 +27,11 @@ class _PeopleScreenState extends State<PeopleScreen> {
   Future<void> _loadPeople() async {
     setState(() => _isLoading = true);
     try {
+      final String userId = requireCurrentUserId();
       final List<dynamic> response = await _supabase
           .from('people')
           .select()
+          .eq('user_id', userId)
           .order('created_at', ascending: false);
 
       if (!mounted) return;

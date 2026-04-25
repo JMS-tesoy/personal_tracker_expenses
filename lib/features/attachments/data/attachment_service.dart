@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/auth/current_user.dart';
 import '../domain/attachment.dart';
 
 class PaymentProofUploadCancelled implements Exception {
@@ -25,6 +26,7 @@ class AttachmentService {
     String? uploadedByPersonId,
   }) async {
     final String safeBillId = billId.trim();
+    final String userId = requireCurrentUserId();
     if (safeBillId.isEmpty) {
       throw Exception('Missing bill id.');
     }
@@ -80,6 +82,7 @@ class AttachmentService {
     // 5. Save record to attachments table
     final List<dynamic> result =
         await _supabase.from('attachments').insert(<String, dynamic>{
+          'user_id': userId,
           'related_type': 'bill',
           'related_id': safeBillId,
           'file_url': fileUrl,
@@ -94,11 +97,13 @@ class AttachmentService {
   /// Fetch all attachments for a bill.
   Future<List<AttachmentModel>> fetchForBill(String billId) async {
     final String safeBillId = billId.trim();
+    final String userId = requireCurrentUserId();
     if (safeBillId.isEmpty) return <AttachmentModel>[];
 
     final List<dynamic> response = await _supabase
         .from('attachments')
         .select()
+        .eq('user_id', userId)
         .eq('related_type', 'bill')
         .eq('related_id', safeBillId)
         .order('created_at', ascending: false);
@@ -110,6 +115,7 @@ class AttachmentService {
 
   /// Delete an attachment record and its storage file.
   Future<void> delete(AttachmentModel attachment) async {
+    final String userId = requireCurrentUserId();
     // Extract storage path from URL
     final Uri uri = Uri.parse(attachment.fileUrl);
     final String storagePath = uri.pathSegments
@@ -118,7 +124,11 @@ class AttachmentService {
         .join('/');
 
     await _supabase.storage.from(_bucket).remove(<String>[storagePath]);
-    await _supabase.from('attachments').delete().eq('id', attachment.id);
+    await _supabase
+        .from('attachments')
+        .delete()
+        .eq('id', attachment.id)
+        .eq('user_id', userId);
   }
 
   static const Set<String> _allowedImageExtensions = <String>{

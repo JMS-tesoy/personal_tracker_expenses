@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/auth/current_user.dart';
 import '../../domain/bill.dart';
 import '../widgets/bill_card.dart';
 import 'add_bill_screen.dart';
@@ -45,9 +46,11 @@ class _BillsScreenState extends State<BillsScreen>
 
   Future<void> _loadPeopleAndSubscribe() async {
     try {
+      final String userId = requireCurrentUserId();
       final List<dynamic> people = await supabase
           .from('people')
-          .select('id, name');
+          .select('id, name')
+          .eq('user_id', userId);
       _peopleNames = <String, String>{
         for (final dynamic p in people)
           (p as Map<String, dynamic>)['id'].toString(): p['name'].toString(),
@@ -57,9 +60,11 @@ class _BillsScreenState extends State<BillsScreen>
   }
 
   void _subscribe() {
+    final String userId = requireCurrentUserId();
     _subscription = supabase
         .from('bills')
         .stream(primaryKey: <String>['id'])
+        .eq('user_id', userId)
         .order('due_day', ascending: true)
         .listen(
           (List<Map<String, dynamic>> data) {
@@ -98,10 +103,12 @@ class _BillsScreenState extends State<BillsScreen>
   Future<void> _markPaid(BillModel bill) async {
     final String today = _toDbDate(DateTime.now());
     try {
+      final String userId = requireCurrentUserId();
       await supabase
           .from('bills')
           .update(<String, dynamic>{'status': 'paid', 'paid_on': today})
-          .eq('id', bill.id);
+          .eq('id', bill.id)
+          .eq('user_id', userId);
     } catch (_) {
       _showMessage('Failed to mark bill as paid.');
     }
@@ -109,10 +116,12 @@ class _BillsScreenState extends State<BillsScreen>
 
   Future<void> _markUnpaid(BillModel bill) async {
     try {
+      final String userId = requireCurrentUserId();
       await supabase
           .from('bills')
           .update(<String, dynamic>{'status': 'unpaid', 'paid_on': null})
-          .eq('id', bill.id);
+          .eq('id', bill.id)
+          .eq('user_id', userId);
     } catch (_) {
       _showMessage('Failed to mark bill as unpaid.');
     }
@@ -143,7 +152,12 @@ class _BillsScreenState extends State<BillsScreen>
     if (confirmed != true) return;
 
     try {
-      await supabase.from('bills').delete().eq('id', bill.id);
+      final String userId = requireCurrentUserId();
+      await supabase
+          .from('bills')
+          .delete()
+          .eq('id', bill.id)
+          .eq('user_id', userId);
     } catch (_) {
       _showMessage('Failed to delete bill.');
     }
