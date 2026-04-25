@@ -3,7 +3,7 @@
 -- first app user.
 --
 -- IMPORTANT:
--- Replace <YOUR_AUTH_USER_UUID> with the UUID from auth.users.id for the user
+-- Replace 8387ca51-0bd3-4d74-841b-62a437906d11 with the UUID from auth.users.id for the user
 -- who should own your existing rows.
 
 -- 1. Make sure the user_id columns exist.
@@ -49,27 +49,27 @@ create index if not exists attachments_user_id_related_idx
 
 -- 3. Backfill existing rows.
 update public.people
-set user_id = '<YOUR_AUTH_USER_UUID>'
+set user_id = '8387ca51-0bd3-4d74-841b-62a437906d11'
 where user_id is null;
 
 update public.categories
-set user_id = '<YOUR_AUTH_USER_UUID>'
+set user_id = '8387ca51-0bd3-4d74-841b-62a437906d11'
 where user_id is null;
 
 update public.transactions
-set user_id = '<YOUR_AUTH_USER_UUID>'
+set user_id = '8387ca51-0bd3-4d74-841b-62a437906d11'
 where user_id is null;
 
 update public.bills
-set user_id = '<YOUR_AUTH_USER_UUID>'
+set user_id = '8387ca51-0bd3-4d74-841b-62a437906d11'
 where user_id is null;
 
 update public.loans
-set user_id = '<YOUR_AUTH_USER_UUID>'
+set user_id = '8387ca51-0bd3-4d74-841b-62a437906d11'
 where user_id is null;
 
 update public.attachments
-set user_id = '<YOUR_AUTH_USER_UUID>'
+set user_id = '8387ca51-0bd3-4d74-841b-62a437906d11'
 where user_id is null;
 
 -- 4. Enable RLS.
