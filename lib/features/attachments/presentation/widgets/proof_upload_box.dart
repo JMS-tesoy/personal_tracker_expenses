@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../features/activity/data/repositories/activity_log_repository.dart';
 import '../../data/attachment_service.dart';
 import '../../domain/attachment.dart';
 
@@ -38,6 +39,21 @@ class _ProofUploadBoxState extends State<ProofUploadBox> {
         uploadedByPersonId: widget.uploadedByPersonId,
       );
       if (!mounted) return;
+
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'payment_proof',
+        action: 'proof_uploaded',
+        title: 'Payment proof uploaded',
+        targetId: widget.billId,
+        personId: widget.uploadedByPersonId,
+        description: 'Proof uploaded for bill.',
+        metadata: <String, dynamic>{
+          'file_name': attachment.fileName ?? '',
+          'file_url': attachment.fileUrl,
+          'bill_id': widget.billId,
+        },
+      );
+
       await widget.onUploaded(attachment);
     } on PaymentProofUploadCancelled {
       return;

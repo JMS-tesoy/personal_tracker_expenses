@@ -1,7 +1,6 @@
-// lib/features/reminders/presentation/screens/reminders_screen.dart
-
 import 'package:flutter/material.dart';
 
+import '../../../../features/activity/data/repositories/activity_log_repository.dart';
 import '../../data/models/reminder_model.dart';
 import '../../data/repositories/reminder_repository.dart';
 import '../widgets/reminder_card.dart';
@@ -53,7 +52,21 @@ class _RemindersScreenState extends State<RemindersScreen>
 
   Future<void> _addReminder() async {
     final ReminderModel? result = await showReminderFormSheet(context);
-    if (result != null) _load();
+    if (result != null) {
+      await ActivityLogRepository.instance.createLog(
+        targetType: result.targetType,
+        action: 'reminder_created',
+        title: 'Reminder created',
+        targetId: result.targetId,
+        personId: result.personId,
+        description: '${result.title} was scheduled.',
+        metadata: <String, dynamic>{
+          'reminder_title': result.title,
+          'remind_at': result.remindAt.toIso8601String(),
+        },
+      );
+      _load();
+    }
   }
 
   Future<void> _editReminder(ReminderModel r) async {
@@ -66,11 +79,29 @@ class _RemindersScreenState extends State<RemindersScreen>
 
   Future<void> _markDone(ReminderModel r) async {
     await ReminderRepository.instance.markReminderCompleted(r);
+    await ActivityLogRepository.instance.createLog(
+      targetType: r.targetType,
+      action: 'reminder_completed',
+      title: 'Reminder completed',
+      targetId: r.targetId,
+      personId: r.personId,
+      description: '${r.title} was marked as done.',
+      metadata: <String, dynamic>{'reminder_title': r.title},
+    );
     _load();
   }
 
   Future<void> _cancelReminder(ReminderModel r) async {
     await ReminderRepository.instance.cancelReminder(r);
+    await ActivityLogRepository.instance.createLog(
+      targetType: r.targetType,
+      action: 'reminder_cancelled',
+      title: 'Reminder cancelled',
+      targetId: r.targetId,
+      personId: r.personId,
+      description: '${r.title} was cancelled.',
+      metadata: <String, dynamic>{'reminder_title': r.title},
+    );
     _load();
   }
 

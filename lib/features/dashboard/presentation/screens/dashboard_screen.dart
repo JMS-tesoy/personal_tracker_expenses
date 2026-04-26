@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/auth/current_user.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../activity/presentation/screens/activity_timeline_screen.dart';
 import '../../../loans/domain/loan.dart';
 import '../../../loans/presentation/screens/loan_details_screen.dart';
 import '../../../loans/presentation/widgets/loan_card.dart';
@@ -66,7 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .eq('user_id', userId)
           .order('next_due_date', ascending: true);
 
-      final parsedTransactions = transactionsData.map<_DashboardTransaction?>((
+      final parsedTransactions = transactionsData.map<_DashboardTransaction?>((\
         item,
       ) {
         final map = Map<String, dynamic>.from(item);
@@ -198,6 +199,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Navigator.push<void>(
       context,
       MaterialPageRoute<void>(builder: (_) => const RemindersScreen()),
+    );
+  }
+
+  void openActivityTimeline() {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => const ActivityTimelineScreen(),
+      ),
     );
   }
 
@@ -389,6 +399,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
+              ),
+              // ── Activity Timeline button ─────────────────────────────
+              IconButton(
+                onPressed: openActivityTimeline,
+                icon: const Icon(Icons.history),
+                tooltip: 'Activity Timeline',
               ),
               IconButton(
                 onPressed: () {

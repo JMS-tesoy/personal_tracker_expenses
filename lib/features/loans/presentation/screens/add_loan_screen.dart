@@ -6,6 +6,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/section_header.dart';
+import '../../../activity/data/repositories/activity_log_repository.dart';
 
 class AddLoanScreen extends StatefulWidget {
   const AddLoanScreen({super.key});
@@ -163,23 +164,43 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
 
     try {
       final String userId = requireCurrentUserId();
-      await supabase.from('loans').insert(<String, dynamic>{
-        'user_id': userId,
-        'name': name,
-        'lender': lender.isEmpty ? null : lender,
-        'original_amount': originalAmount,
-        'remaining_balance': originalAmount,
-        'monthly_installment': monthlyInstallment,
-        'total_cycles': totalCycles,
-        'paid_cycles': 0,
-        'total_paydays': totalPaydays,
-        'paid_paydays': 0,
-        'start_date': _toDbDate(selectedStartDate),
-        'next_due_date': _toDbDate(selectedNextDueDate),
-        'due_day': dueDay,
-        'status': 'active',
-        'notes': notes.isEmpty ? null : notes,
-      });
+      final List<dynamic> result = await supabase
+          .from('loans')
+          .insert(<String, dynamic>{
+            'user_id': userId,
+            'name': name,
+            'lender': lender.isEmpty ? null : lender,
+            'original_amount': originalAmount,
+            'remaining_balance': originalAmount,
+            'monthly_installment': monthlyInstallment,
+            'total_cycles': totalCycles,
+            'paid_cycles': 0,
+            'total_paydays': totalPaydays,
+            'paid_paydays': 0,
+            'start_date': _toDbDate(selectedStartDate),
+            'next_due_date': _toDbDate(selectedNextDueDate),
+            'due_day': dueDay,
+            'status': 'active',
+            'notes': notes.isEmpty ? null : notes,
+          })
+          .select('id');
+
+      final String? loanId = result.isNotEmpty
+          ? (result.first as Map<String, dynamic>)['id']?.toString()
+          : null;
+
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'loan',
+        action: 'created',
+        title: 'Loan created',
+        targetId: loanId,
+        description: '$name was added.',
+        metadata: <String, dynamic>{
+          'loan_name': name,
+          'amount': originalAmount,
+          'lender': lender,
+        },
+      );
 
       if (!mounted) return;
       setState(() => isSaving = false);
@@ -236,8 +257,6 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
               ),
             ),
             const SizedBox(height: 14),
-
-            // ── Read-only: auto-calculated monthly installment ───────────
             TextField(
               controller: TextEditingController(text: installmentText),
               readOnly: true,
@@ -263,8 +282,6 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
               ),
               style: TextStyle(color: colorScheme.onSurfaceVariant),
             ),
-
-            // ─────────────────────────────────────────────────────────────
             const SizedBox(height: 14),
             AppTextField(
               label: 'Total cycles (months)',

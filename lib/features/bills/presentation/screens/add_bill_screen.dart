@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/auth/current_user.dart';
+import '../../../activity/data/repositories/activity_log_repository.dart';
 import '../widgets/bill_form.dart';
 
 class AddBillScreen extends StatefulWidget {
@@ -20,19 +21,39 @@ class _AddBillScreenState extends State<AddBillScreen> {
 
     try {
       final String userId = requireCurrentUserId();
-      await _supabase.from('bills').insert(<String, dynamic>{
-        'user_id': userId,
-        'name': data.name,
-        'amount': data.amount,
-        'due_day': data.dueDay,
-        'payment_method': data.paymentMethod,
-        'assigned_person_id': data.assignedPersonId,
-        'paid_by_person_id': null,
-        'paid_on': null,
-        'status': 'active',
-        'notes': data.notes,
-        'remarks': data.remarks,
-      });
+      final List<dynamic> result = await _supabase
+          .from('bills')
+          .insert(<String, dynamic>{
+            'user_id': userId,
+            'name': data.name,
+            'amount': data.amount,
+            'due_day': data.dueDay,
+            'payment_method': data.paymentMethod,
+            'assigned_person_id': data.assignedPersonId,
+            'paid_by_person_id': null,
+            'paid_on': null,
+            'status': 'active',
+            'notes': data.notes,
+            'remarks': data.remarks,
+          })
+          .select('id');
+
+      // Log activity safely
+      final String? billId = result.isNotEmpty
+          ? (result.first as Map<String, dynamic>)['id']?.toString()
+          : null;
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'bill',
+        action: 'created',
+        title: 'Bill created',
+        targetId: billId,
+        personId: data.assignedPersonId,
+        description: '${data.name} was added.',
+        metadata: <String, dynamic>{
+          'bill_name': data.name,
+          'amount': data.amount,
+        },
+      );
 
       if (!mounted) return;
       Navigator.pop(context, true);

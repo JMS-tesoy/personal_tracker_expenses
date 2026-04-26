@@ -79,8 +79,8 @@ class _PersonFormState extends State<PersonForm> {
                 Text(
                   'Choose Avatar',
                   style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 14),
                 GridView.builder(
@@ -160,12 +160,14 @@ class _PersonFormState extends State<PersonForm> {
               children: <Widget>[
                 CircleAvatar(
                   radius: 40,
-                  backgroundColor: selectedAvatar?.backgroundColor ??
+                  backgroundColor:
+                      selectedAvatar?.backgroundColor ??
                       colors.primaryContainer,
                   child: Icon(
                     selectedAvatar?.icon ?? Icons.person,
                     size: 40,
-                    color: selectedAvatar?.foregroundColor ??
+                    color:
+                        selectedAvatar?.foregroundColor ??
                         colors.onPrimaryContainer,
                   ),
                 ),
@@ -180,11 +182,7 @@ class _PersonFormState extends State<PersonForm> {
                       shape: BoxShape.circle,
                       border: Border.all(color: colors.surface, width: 2),
                     ),
-                    child: Icon(
-                      Icons.add,
-                      size: 18,
-                      color: colors.onPrimary,
-                    ),
+                    child: Icon(Icons.add, size: 18, color: colors.onPrimary),
                   ),
                 ),
               ],
