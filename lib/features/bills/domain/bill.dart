@@ -34,17 +34,22 @@ class BillModel {
   final DateTime createdAt;
 
   bool get isPaid => status.trim().toLowerCase() == 'paid';
+  bool get isActive {
+    final String normalized = status.trim().toLowerCase();
+    return normalized == 'active' || normalized == 'unpaid';
+  }
+
   bool get isOverdue {
     return status.trim().toLowerCase() == 'overdue' ||
         BillDueDateHelper.isOverdue(dueDay: dueDay, status: status);
   }
 
-  bool get isUnpaid => !isPaid && !isOverdue;
+  bool get isUnpaid => isActive && !isOverdue;
 
   String get displayStatus {
     if (isPaid) return 'paid';
     if (isOverdue) return 'overdue';
-    return 'unpaid';
+    return 'active';
   }
 
   BillModel copyWith({
@@ -84,7 +89,7 @@ class BillModel {
       paidByPersonName: _emptyToNull(map['paid_by_person_name']),
       paidOn: _parseDate(map['paid_on']),
       paymentMethod: map['payment_method']?.toString() ?? '',
-      status: map['status']?.toString() ?? 'unpaid',
+      status: map['status']?.toString() ?? 'active',
       notes: _emptyToNull(map['notes']),
       remarks: _emptyToNull(map['remarks']),
       createdAt:

@@ -8,6 +8,7 @@ class TransactionModel {
   final String? note;
   final DateTime transactionDate;
   final DateTime createdAt;
+  final bool isArchived;
 
   const TransactionModel({
     required this.id,
@@ -19,6 +20,7 @@ class TransactionModel {
     this.note,
     required this.transactionDate,
     required this.createdAt,
+    required this.isArchived,
   });
 
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
@@ -32,6 +34,7 @@ class TransactionModel {
       note: map['note'] as String?,
       transactionDate: DateTime.parse(map['transaction_date'] as String),
       createdAt: DateTime.parse(map['created_at'] as String),
+      isArchived: map['is_archived'] == true,
     );
   }
 }

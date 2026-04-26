@@ -81,6 +81,23 @@ class _LoansScreenState extends State<LoansScreen>
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  void _applyLoanUpdate(LoanModel updatedLoan) {
+    final List<LoanModel> allLoans = <LoanModel>[
+      updatedLoan,
+      ..._activeLoans.where((LoanModel loan) => loan.id != updatedLoan.id),
+      ..._paidLoans.where((LoanModel loan) => loan.id != updatedLoan.id),
+    ];
+
+    setState(() {
+      _selectedLoan = updatedLoan;
+      _activeLoans = allLoans.where((LoanModel loan) => !loan.isPaid).toList();
+      _paidLoans = allLoans.where((LoanModel loan) => loan.isPaid).toList();
+      if (updatedLoan.isPaid) {
+        _tabController.index = 1;
+      }
+    });
+  }
+
   Widget _buildLoanList(List<LoanModel> loans, String emptyMessage) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
@@ -126,6 +143,7 @@ class _LoansScreenState extends State<LoansScreen>
     if (selectedLoan != null) {
       return LoanDetailsScreen(
         loan: selectedLoan,
+        onLoanChanged: _applyLoanUpdate,
         onBack: () => setState(() => _selectedLoan = null),
       );
     }

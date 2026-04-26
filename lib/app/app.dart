@@ -23,6 +23,19 @@ class App extends StatelessWidget {
           outlineVariant: const Color(0xFF1D2228),
           error: const Color(0xFFFF6B6B),
         );
+    final ButtonStyle softButtonStyle = FilledButton.styleFrom(
+      backgroundColor: colorScheme.primary.withValues(alpha: 0.14),
+      disabledBackgroundColor: colorScheme.onSurface.withValues(alpha: 0.08),
+      foregroundColor: colorScheme.primary,
+      disabledForegroundColor: colorScheme.onSurfaceVariant.withValues(
+        alpha: 0.62,
+      ),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.22)),
+      ),
+    );
 
     return MaterialApp(
       title: 'Payday Financial Control System',
@@ -54,25 +67,8 @@ class App extends StatelessWidget {
             borderSide: const BorderSide(color: Color(0xFFE6E8EA), width: 1.4),
           ),
         ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFE6E8EA),
-            foregroundColor: const Color(0xFF171A1F),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFE6E8EA),
-            foregroundColor: const Color(0xFF171A1F),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-          ),
-        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(style: softButtonStyle),
+        filledButtonTheme: FilledButtonThemeData(style: softButtonStyle),
       ),
       builder: (context, child) {
         return AppTextureBackground(child: child ?? const SizedBox.shrink());

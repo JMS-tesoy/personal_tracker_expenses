@@ -121,11 +121,11 @@ class _BillsScreenState extends State<BillsScreen>
       final String userId = requireCurrentUserId();
       await supabase
           .from('bills')
-          .update(<String, dynamic>{'status': 'unpaid', 'paid_on': null})
+          .update(<String, dynamic>{'status': 'active', 'paid_on': null})
           .eq('id', bill.id)
           .eq('user_id', userId);
     } catch (_) {
-      _showMessage('Failed to mark bill as unpaid.');
+      _showMessage('Failed to mark bill as active.');
     }
   }
 
@@ -243,7 +243,7 @@ class _BillsScreenState extends State<BillsScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              'No unpaid bills',
+              'No active bills',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
@@ -262,7 +262,7 @@ class _BillsScreenState extends State<BillsScreen>
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
       children: <Widget>[
         _buildSection('Overdue', _overdue, colors.error),
-        _buildSection('Unpaid', _unpaid, colors.primary),
+        _buildSection('Active', _unpaid, colors.primary),
       ],
     );
   }
@@ -348,7 +348,7 @@ class _BillsScreenState extends State<BillsScreen>
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
-                            const Text('Unpaid'),
+                            const Text('Active'),
                             if (_unpaid.isNotEmpty ||
                                 _overdue.isNotEmpty) ...<Widget>[
                               const SizedBox(width: 6),

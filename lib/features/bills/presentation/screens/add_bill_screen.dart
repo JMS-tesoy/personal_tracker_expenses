@@ -29,7 +29,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
         'assigned_person_id': data.assignedPersonId,
         'paid_by_person_id': null,
         'paid_on': null,
-        'status': 'unpaid',
+        'status': 'active',
         'notes': data.notes,
         'remarks': data.remarks,
       });

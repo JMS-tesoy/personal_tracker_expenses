@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../features/reminders/presentation/widgets/reminder_form_sheet.dart';
 import '../../domain/person.dart';
 
 class PersonCard extends StatelessWidget {
@@ -40,6 +41,17 @@ class PersonCard extends StatelessWidget {
         subtitle: person.role != null && person.role!.isNotEmpty
             ? Text(person.role!, style: TextStyle(color: colors.outline))
             : null,
+        trailing: IconButton(
+          icon: Icon(Icons.add_alert_outlined, color: colors.primary),
+          tooltip: 'Add Reminder',
+          onPressed: () => showReminderFormSheet(
+            context,
+            targetType: 'person',
+            targetId: person.id,
+            personId: person.id,
+            prefillTitle: 'Reminder for ${person.name}',
+          ),
+        ),
       ),
     );
   }

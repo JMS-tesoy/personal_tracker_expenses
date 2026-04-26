@@ -123,6 +123,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       'category_id': selectedCategory.id,
       'payment_method': paymentMethod,
       'transaction_date': databaseDate(selectedDate),
+      'created_at': DateTime.now().toUtc().toIso8601String(),
+      'is_archived': false,
       'note': noteController.text,
     };
 

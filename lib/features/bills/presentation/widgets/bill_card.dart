@@ -169,7 +169,7 @@ class BillCard extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: onMarkUnpaid,
                         icon: const Icon(Icons.undo, size: 16),
-                        label: const Text('Mark Unpaid'),
+                        label: const Text('Mark Active'),
                         style: OutlinedButton.styleFrom(
                           visualDensity: VisualDensity.compact,
                         ),

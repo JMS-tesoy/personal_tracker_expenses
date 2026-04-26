@@ -14,22 +14,28 @@ class TransactionsScreen extends StatefulWidget {
   State<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
-class _TransactionsScreenState extends State<TransactionsScreen> {
+class _TransactionsScreenState extends State<TransactionsScreen>
+    with SingleTickerProviderStateMixin {
   final supabase = Supabase.instance.client;
   List<TransactionModel> transactions = [];
-  String selectedSort = 'newest';
+  String selectedSort = 'descending';
+  late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     fetchTransactions();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> fetchTransactions() async {
     final String userId = requireCurrentUserId();
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month);
-    final startOfNextMonth = DateTime(now.year, now.month + 1);
 
     final categoriesData = await supabase
         .from('categories')
@@ -43,11 +49,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final transactionsData = await supabase
         .from('transactions')
         .select(
-          'id, amount, type, category_id, payment_method, note, transaction_date, created_at',
+          'id, amount, type, category_id, payment_method, note, transaction_date, created_at, is_archived',
         )
         .eq('user_id', userId)
-        .gte('transaction_date', databaseDate(startOfMonth))
-        .lt('transaction_date', databaseDate(startOfNextMonth))
         .order('created_at', ascending: false);
 
     final validTransactions = transactionsData
@@ -76,27 +80,131 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     });
   }
 
-  String databaseDate(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-
-    return '${date.year}-$month-$day';
-  }
-
   void sortTransactions() {
     transactions.sort((a, b) {
       switch (selectedSort) {
-        case 'oldest':
+        case 'ascending':
           return a.createdAt.compareTo(b.createdAt);
-        case 'amountHigh':
-          return b.amount.compareTo(a.amount);
-        case 'amountLow':
-          return a.amount.compareTo(b.amount);
-        case 'newest':
+        case 'descending':
         default:
           return b.createdAt.compareTo(a.createdAt);
       }
     });
+  }
+
+  bool isCurrentMonth(TransactionModel transaction) {
+    final DateTime now = DateTime.now();
+    return transaction.transactionDate.year == now.year &&
+        transaction.transactionDate.month == now.month;
+  }
+
+  List<TransactionModel> get activeTransactions {
+    return transactions.where((TransactionModel tx) {
+      return isCurrentMonth(tx) && !tx.isArchived;
+    }).toList();
+  }
+
+  List<TransactionModel> get historyTransactions {
+    return transactions.where((TransactionModel tx) {
+      return !isCurrentMonth(tx) || tx.isArchived;
+    }).toList();
+  }
+
+  Future<void> moveToArchive(TransactionModel transaction) async {
+    try {
+      await supabase
+          .from('transactions')
+          .update(<String, dynamic>{'is_archived': true})
+          .eq('id', transaction.id)
+          .eq('user_id', requireCurrentUserId());
+
+      await fetchTransactions();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to move transaction to archive.')),
+      );
+    }
+  }
+
+  String displayDateTime(DateTime date) {
+    final DateTime localDate = date.toLocal();
+    final String month = localDate.month.toString().padLeft(2, '0');
+    final String day = localDate.day.toString().padLeft(2, '0');
+    final int hour = localDate.hour > 12
+        ? localDate.hour - 12
+        : localDate.hour == 0
+        ? 12
+        : localDate.hour;
+    final String minute = localDate.minute.toString().padLeft(2, '0');
+    final String period = localDate.hour >= 12 ? 'PM' : 'AM';
+
+    return '$month/$day/${localDate.year} $hour:$minute $period';
+  }
+
+  Widget buildTransactionList(
+    List<TransactionModel> items,
+    String emptyMessage, {
+    required bool canArchive,
+  }) {
+    if (items.isEmpty) {
+      return Center(child: Text(emptyMessage));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 96),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final tx = items[index];
+        final transactionType = tx.type.toLowerCase();
+        final isIncome = transactionType == 'income';
+        final amountText =
+            '${isIncome ? '+' : '-'}${CurrencyFormatter.format(tx.amount)}';
+
+        return ListTile(
+          isThreeLine: true,
+          title: Text(tx.categoryName),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text('$transactionType • ${tx.paymentMethod}'),
+              const SizedBox(height: 2),
+              Text(displayDateTime(tx.createdAt)),
+            ],
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                amountText,
+                style: TextStyle(
+                  color: isIncome
+                      ? const Color(0xFFA7D7B5)
+                      : Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (canArchive) ...<Widget>[
+                const SizedBox(width: 4),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  onSelected: (String value) {
+                    if (value == 'archive') moveToArchive(tx);
+                  },
+                  itemBuilder: (BuildContext context) =>
+                      const <PopupMenuEntry<String>>[
+                        PopupMenuItem<String>(
+                          value: 'archive',
+                          child: Text('Move to Archive'),
+                        ),
+                      ],
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -115,51 +223,37 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               });
             },
             itemBuilder: (context) => const [
-              PopupMenuItem(value: 'newest', child: Text('Newest first')),
-              PopupMenuItem(value: 'oldest', child: Text('Oldest first')),
-              PopupMenuItem(
-                value: 'amountHigh',
-                child: Text('Amount high to low'),
-              ),
-              PopupMenuItem(
-                value: 'amountLow',
-                child: Text('Amount low to high'),
-              ),
+              PopupMenuItem(value: 'ascending', child: Text('Ascending')),
+              PopupMenuItem(value: 'descending', child: Text('Descending')),
             ],
           ),
         ],
       ),
       body: Column(
         children: [
+          TabBar(
+            controller: _tabController,
+            tabs: const <Tab>[
+              Tab(text: 'Transaction'),
+              Tab(text: 'History'),
+            ],
+          ),
           Expanded(
-            child: transactions.isEmpty
-                ? const Center(child: Text('No transactions this month'))
-                : ListView.builder(
-                    itemCount: transactions.length,
-                    itemBuilder: (context, index) {
-                      final tx = transactions[index];
-                      final transactionType = tx.type.toLowerCase();
-                      final isIncome = transactionType == 'income';
-                      final amountText =
-                          '${isIncome ? '+' : '-'}${CurrencyFormatter.format(tx.amount)}';
-
-                      return ListTile(
-                        title: Text(tx.categoryName),
-                        subtitle: Text(
-                          '$transactionType • ${tx.paymentMethod}',
-                        ),
-                        trailing: Text(
-                          amountText,
-                          style: TextStyle(
-                            color: isIncome
-                                ? const Color(0xFFA7D7B5)
-                                : Theme.of(context).colorScheme.error,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+            child: TabBarView(
+              controller: _tabController,
+              children: <Widget>[
+                buildTransactionList(
+                  activeTransactions,
+                  'No transactions this month',
+                  canArchive: true,
+                ),
+                buildTransactionList(
+                  historyTransactions,
+                  'No transaction history yet',
+                  canArchive: false,
+                ),
+              ],
+            ),
           ),
         ],
       ),
