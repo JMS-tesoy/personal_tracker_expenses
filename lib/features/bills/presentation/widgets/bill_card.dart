@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
 import '../../domain/bill.dart';
-import '../screens/bill_details_screen.dart';
 
 class BillCard extends StatelessWidget {
   const BillCard({
     super.key,
     required this.bill,
+    required this.onOpen,
     required this.onMarkPaid,
     required this.onMarkUnpaid,
     required this.onDelete,
   });
 
   final BillModel bill;
+  final VoidCallback onOpen;
   final VoidCallback onMarkPaid;
   final VoidCallback onMarkUnpaid;
   final VoidCallback onDelete;
@@ -24,10 +25,7 @@ class BillCard extends StatelessWidget {
     final TextTheme textTheme = Theme.of(context).textTheme;
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute<void>(builder: (_) => BillDetailsScreen(bill: bill)),
-      ),
+      onTap: onOpen,
       child: Card(
         elevation: 0,
         margin: const EdgeInsets.only(bottom: 12),

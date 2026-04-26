@@ -24,6 +24,7 @@ class _LoansScreenState extends State<LoansScreen>
   late final StreamSubscription<List<Map<String, dynamic>>> _subscription;
 
   bool isLoading = true;
+  LoanModel? _selectedLoan;
   List<LoanModel> _activeLoans = <LoanModel>[];
   List<LoanModel> _paidLoans = <LoanModel>[];
 
@@ -73,13 +74,6 @@ class _LoansScreenState extends State<LoansScreen>
     );
   }
 
-  Future<void> _openLoanDetails(LoanModel loan) async {
-    await Navigator.push<bool>(
-      context,
-      MaterialPageRoute<bool>(builder: (_) => LoanDetailsScreen(loan: loan)),
-    );
-  }
-
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -116,7 +110,10 @@ class _LoansScreenState extends State<LoansScreen>
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
       children: loans.map((LoanModel loan) {
-        return LoanCard(loan: loan, onTap: () => _openLoanDetails(loan));
+        return LoanCard(
+          loan: loan,
+          onTap: () => setState(() => _selectedLoan = loan),
+        );
       }).toList(),
     );
   }
@@ -124,6 +121,14 @@ class _LoansScreenState extends State<LoansScreen>
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    final LoanModel? selectedLoan = _selectedLoan;
+    if (selectedLoan != null) {
+      return LoanDetailsScreen(
+        loan: selectedLoan,
+        onBack: () => setState(() => _selectedLoan = null),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(

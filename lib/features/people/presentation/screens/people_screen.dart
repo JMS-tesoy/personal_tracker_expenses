@@ -17,6 +17,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
   final SupabaseClient _supabase = Supabase.instance.client;
   List<Person> _people = <Person>[];
   bool _isLoading = true;
+  bool _isSeeding = false;
 
   @override
   void initState() {
@@ -58,6 +59,78 @@ class _PeopleScreenState extends State<PeopleScreen> {
     if (result == true) _loadPeople();
   }
 
+  Future<void> _addSamplePeople() async {
+    setState(() => _isSeeding = true);
+    try {
+      final String userId = requireCurrentUserId();
+      await _supabase.from('people').insert(<Map<String, dynamic>>[
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Juan Dela Cruz',
+          'role': 'Family',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Maria Santos',
+          'role': 'Family',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Jose Reyes',
+          'role': 'Friend',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Ana Garcia',
+          'role': 'Friend',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Pedro Ramos',
+          'role': 'Coworker',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Liza Cruz',
+          'role': 'Coworker',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Carlo Mendoza',
+          'role': 'Household',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Nina Lopez',
+          'role': 'Household',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Mark Flores',
+          'role': 'Business',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Grace Aquino',
+          'role': 'Business',
+        },
+      ]);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('10 people added to Supabase.')),
+      );
+      await _loadPeople();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to add sample people.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSeeding = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
@@ -88,6 +161,14 @@ class _PeopleScreenState extends State<PeopleScreen> {
                       'Add people to assign bills, payments, and responsibilities.',
                       style: TextStyle(color: colors.outline),
                       textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _isSeeding ? null : _addSamplePeople,
+                      icon: const Icon(Icons.group_add_outlined),
+                      label: Text(
+                        _isSeeding ? 'Adding...' : 'Add 10 sample people',
+                      ),
                     ),
                   ],
                 ),

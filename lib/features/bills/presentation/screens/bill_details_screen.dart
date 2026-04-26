@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/bill_due_date_helper.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../attachments/data/attachment_service.dart';
 import '../../../attachments/domain/attachment.dart';
 import '../../../attachments/presentation/widgets/proof_upload_box.dart';
+import '../../../reminders/presentation/widgets/reminder_form_sheet.dart';
 import '../../domain/bill.dart';
 
 class BillDetailsScreen extends StatefulWidget {
-  const BillDetailsScreen({super.key, required this.bill});
+  const BillDetailsScreen({super.key, required this.bill, this.onBack});
 
   final BillModel bill;
+  final VoidCallback? onBack;
 
   @override
   State<BillDetailsScreen> createState() => _BillDetailsScreenState();
@@ -61,12 +64,49 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
     );
   }
 
+  DateTime _nextBillDueDate(BillModel bill) {
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime dueDate = BillDueDateHelper.dueDateForMonth(
+      dueDay: bill.dueDay,
+      fromDate: today,
+    );
+
+    if (!dueDate.isBefore(today)) return dueDate;
+
+    return BillDueDateHelper.dueDateForMonth(
+      dueDay: bill.dueDay,
+      fromDate: DateTime(today.year, today.month + 1),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final BillModel bill = widget.bill;
 
     return Scaffold(
-      appBar: AppBar(title: Text(bill.name)),
+      appBar: AppBar(
+        leading: widget.onBack == null
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: widget.onBack,
+              ),
+        title: Text(bill.name),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.add_alert_outlined),
+            tooltip: 'Add reminder',
+            onPressed: () => showReminderFormSheet(
+              context,
+              targetType: 'bill',
+              targetId: bill.id,
+              prefillTitle: '${bill.name} bill',
+              prefillDueAt: _nextBillDueDate(bill),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         children: <Widget>[

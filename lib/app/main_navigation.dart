@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../features/bills/presentation/screens/bills_screen.dart';
-import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
-import '../../features/loans/presentation/screens/loans_screen.dart';
-import '../../features/transactions/presentation/screens/transactions_screen.dart';
-import '../../features/people/presentation/screens/people_screen.dart';
+import '../features/bills/presentation/screens/bills_screen.dart';
+import '../features/dashboard/presentation/screens/dashboard_screen.dart';
+import '../features/loans/presentation/screens/loans_screen.dart';
+import '../features/people/presentation/screens/people_screen.dart';
+import '../features/reminders/presentation/screens/reminders_screen.dart';
+import '../features/transactions/presentation/screens/transactions_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -21,6 +22,7 @@ class _MainNavigationState extends State<MainNavigation> {
     BillsScreen(),
     LoansScreen(),
     PeopleScreen(),
+    RemindersScreen(),
   ];
 
   @override
@@ -65,6 +67,11 @@ class _MainNavigationState extends State<MainNavigation> {
             icon: Icon(Icons.people_outline),
             activeIcon: Icon(Icons.people),
             label: 'People',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_outlined),
+            activeIcon: Icon(Icons.notifications),
+            label: 'Reminders',
           ),
         ],
       ),

@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// lib/features/reminders/presentation/screens/reminders_screen.dart
 
-import '../../../../core/auth/current_user.dart';
-import '../../../bills/domain/bill.dart';
-import '../../domain/reminder.dart';
+import 'package:flutter/material.dart';
+
+import '../../data/models/reminder_model.dart';
+import '../../data/repositories/reminder_repository.dart';
 import '../widgets/reminder_card.dart';
+import '../widgets/reminder_form_sheet.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -13,224 +14,180 @@ class RemindersScreen extends StatefulWidget {
   State<RemindersScreen> createState() => _RemindersScreenState();
 }
 
-class _RemindersScreenState extends State<RemindersScreen> {
-  final SupabaseClient _supabase = Supabase.instance.client;
+class _RemindersScreenState extends State<RemindersScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
 
+  List<ReminderModel> _active = <ReminderModel>[];
+  List<ReminderModel> _history = <ReminderModel>[];
   bool _isLoading = true;
-  List<ReminderModel> _overdue = <ReminderModel>[];
-  List<ReminderModel> _dueSoon = <ReminderModel>[];
-  List<ReminderModel> _upcoming = <ReminderModel>[];
 
   @override
   void initState() {
     super.initState();
-    _loadReminders();
+    _tabController = TabController(length: 2, vsync: this);
+    _load();
   }
 
-  Future<void> _loadReminders() async {
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
     setState(() => _isLoading = true);
 
-    try {
-      final String userId = requireCurrentUserId();
-      final List<dynamic> people = await _supabase
-          .from('people')
-          .select('id, name')
-          .eq('user_id', userId);
-      final Map<String, String> peopleNames = <String, String>{
-        for (final dynamic p in people)
-          (p as Map<String, dynamic>)['id'].toString(): p['name'].toString(),
-      };
+    final List<ReminderModel> active = await ReminderRepository.instance
+        .getActiveReminders();
+    final List<ReminderModel> history = await ReminderRepository.instance
+        .getHistoryReminders();
 
-      final List<dynamic> rows = await _supabase
-          .from('bills')
-          .select()
-          .eq('user_id', userId)
-          .order('due_day', ascending: true);
-      final List<ReminderModel> reminders =
-          rows
-              .map((dynamic row) {
-                final Map<String, dynamic> billRow = Map<String, dynamic>.from(
-                  row as Map<String, dynamic>,
-                );
-                billRow['assigned_person_name'] =
-                    peopleNames[billRow['assigned_person_id']?.toString()];
-                return BillModel.fromMap(billRow);
-              })
-              .where((BillModel bill) => !bill.isPaid)
-              .map(ReminderModel.fromBill)
-              .toList()
-            ..sort((ReminderModel a, ReminderModel b) {
-              return a.dueDate.compareTo(b.dueDate);
-            });
-
-      if (!mounted) return;
-      setState(() {
-        _overdue = reminders
-            .where((ReminderModel reminder) => reminder.isOverdue)
-            .toList();
-        _dueSoon = reminders
-            .where((ReminderModel reminder) => reminder.isDueSoon)
-            .toList();
-        _upcoming = reminders
-            .where(
-              (ReminderModel reminder) =>
-                  !reminder.isOverdue && !reminder.isDueSoon,
-            )
-            .toList();
-        _isLoading = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load reminders.')),
-      );
-    }
+    if (!mounted) return;
+    setState(() {
+      _active = active;
+      _history = history;
+      _isLoading = false;
+    });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final bool hasReminders =
-        _overdue.isNotEmpty || _dueSoon.isNotEmpty || _upcoming.isNotEmpty;
+  Future<void> _addReminder() async {
+    final ReminderModel? result = await showReminderFormSheet(context);
+    if (result != null) _load();
+  }
 
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _loadReminders,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-                  children: <Widget>[
-                    Text(
-                      'Reminders',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Upcoming and overdue bill reminders',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    if (!hasReminders)
-                      _EmptyReminders(colorScheme: colorScheme)
-                    else ...<Widget>[
-                      _ReminderSection(
-                        title: 'Overdue',
-                        reminders: _overdue,
-                        titleColor: colorScheme.error,
-                      ),
-                      _ReminderSection(
-                        title: 'Due Soon',
-                        reminders: _dueSoon,
-                        titleColor: colorScheme.primary,
-                      ),
-                      _ReminderSection(
-                        title: 'Upcoming',
-                        reminders: _upcoming,
-                        titleColor: colorScheme.onSurfaceVariant,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-      ),
+  Future<void> _editReminder(ReminderModel r) async {
+    final ReminderModel? result = await showReminderFormSheet(
+      context,
+      existingReminder: r,
     );
+    if (result != null) _load();
   }
-}
 
-class _ReminderSection extends StatelessWidget {
-  const _ReminderSection({
-    required this.title,
-    required this.reminders,
-    required this.titleColor,
-  });
-
-  final String title;
-  final List<ReminderModel> reminders;
-  final Color titleColor;
-
-  @override
-  Widget build(BuildContext context) {
-    if (reminders.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10, top: 4),
-          child: Row(
-            children: <Widget>[
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: titleColor,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: titleColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${reminders.length}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    color: titleColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        ...reminders.map(
-          (ReminderModel reminder) => ReminderCard(reminder: reminder),
-        ),
-        const SizedBox(height: 8),
-      ],
-    );
+  Future<void> _markDone(ReminderModel r) async {
+    await ReminderRepository.instance.markReminderCompleted(r);
+    _load();
   }
-}
 
-class _EmptyReminders extends StatelessWidget {
-  const _EmptyReminders({required this.colorScheme});
+  Future<void> _cancelReminder(ReminderModel r) async {
+    await ReminderRepository.instance.cancelReminder(r);
+    _load();
+  }
 
-  final ColorScheme colorScheme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 120),
-      child: Column(
-        children: <Widget>[
-          Icon(
-            Icons.notifications_none_outlined,
-            size: 56,
-            color: colorScheme.onSurfaceVariant,
+  Future<void> _deleteReminder(ReminderModel r) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Delete Reminder'),
+        content: const Text('This reminder will be permanently deleted.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'No bill reminders',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "You're all caught up!",
-            style: TextStyle(color: colorScheme.onSurfaceVariant),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
           ),
         ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await ReminderRepository.instance.deleteReminder(r);
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Reminders'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const <Widget>[
+            Tab(text: 'Upcoming'),
+            Tab(text: 'History'),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addReminder,
+        tooltip: 'Add reminder',
+        child: const Icon(Icons.add),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : TabBarView(
+              controller: _tabController,
+              children: <Widget>[
+                _ReminderList(
+                  reminders: _active,
+                  emptyMessage: 'No upcoming reminders.\nTap + to add one.',
+                  onMarkDone: _markDone,
+                  onEdit: _editReminder,
+                  onCancel: _cancelReminder,
+                  onDelete: _deleteReminder,
+                ),
+                _ReminderList(
+                  reminders: _history,
+                  emptyMessage: 'No reminder history yet.',
+                  onDelete: _deleteReminder,
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+// ── Private list widget ───────────────────────────────────────────────────────
+
+class _ReminderList extends StatelessWidget {
+  const _ReminderList({
+    required this.reminders,
+    required this.emptyMessage,
+    this.onMarkDone,
+    this.onEdit,
+    this.onCancel,
+    this.onDelete,
+  });
+
+  final List<ReminderModel> reminders;
+  final String emptyMessage;
+  final void Function(ReminderModel)? onMarkDone;
+  final void Function(ReminderModel)? onEdit;
+  final void Function(ReminderModel)? onCancel;
+  final void Function(ReminderModel)? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    if (reminders.isEmpty) {
+      return Center(
+        child: Text(
+          emptyMessage,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {},
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+        itemCount: reminders.length,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (BuildContext ctx, int i) {
+          final ReminderModel r = reminders[i];
+          return ReminderCard(
+            reminder: r,
+            onMarkDone: onMarkDone != null ? () => onMarkDone!(r) : null,
+            onEdit: onEdit != null ? () => onEdit!(r) : null,
+            onCancel: onCancel != null ? () => onCancel!(r) : null,
+            onDelete: onDelete != null ? () => onDelete!(r) : null,
+          );
+        },
       ),
     );
   }

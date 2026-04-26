@@ -7,6 +7,7 @@ import '../../../../core/auth/current_user.dart';
 import '../../domain/bill.dart';
 import '../widgets/bill_card.dart';
 import 'add_bill_screen.dart';
+import 'bill_details_screen.dart';
 
 class BillsScreen extends StatefulWidget {
   const BillsScreen({super.key});
@@ -23,6 +24,7 @@ class _BillsScreenState extends State<BillsScreen>
   late final TabController _tabController;
 
   bool isLoading = true;
+  BillModel? _selectedBill;
   List<BillModel> _unpaid = <BillModel>[];
   List<BillModel> _overdue = <BillModel>[];
   List<BillModel> _paid = <BillModel>[];
@@ -215,6 +217,7 @@ class _BillsScreenState extends State<BillsScreen>
         ...bills.map(
           (BillModel bill) => BillCard(
             bill: bill,
+            onOpen: () => setState(() => _selectedBill = bill),
             onMarkPaid: () => _markPaid(bill),
             onMarkUnpaid: () => _markUnpaid(bill),
             onDelete: () => _confirmDelete(bill),
@@ -298,6 +301,14 @@ class _BillsScreenState extends State<BillsScreen>
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
+    final BillModel? selectedBill = _selectedBill;
+    if (selectedBill != null) {
+      return BillDetailsScreen(
+        bill: selectedBill,
+        onBack: () => setState(() => _selectedBill = null),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(

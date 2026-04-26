@@ -4,12 +4,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/auth/current_user.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../reminders/presentation/widgets/reminder_form_sheet.dart';
 import '../../domain/loan.dart';
 
 class LoanDetailsScreen extends StatefulWidget {
-  const LoanDetailsScreen({super.key, required this.loan});
+  const LoanDetailsScreen({super.key, required this.loan, this.onBack});
 
   final LoanModel loan;
+  final VoidCallback? onBack;
 
   @override
   State<LoanDetailsScreen> createState() => _LoanDetailsScreenState();
@@ -83,7 +85,11 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
           .eq('id', loan.id)
           .eq('user_id', userId);
       if (!mounted) return;
-      Navigator.pop(context, true);
+      if (widget.onBack != null) {
+        widget.onBack!();
+      } else {
+        Navigator.pop(context, true);
+      }
       return;
     }
 
@@ -184,7 +190,11 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
           .eq('user_id', userId);
 
       if (!mounted) return;
-      Navigator.pop(context, true);
+      if (widget.onBack != null) {
+        widget.onBack!();
+      } else {
+        Navigator.pop(context, true);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => isSaving = false);
@@ -217,7 +227,28 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
     final double paidAmount = loan.originalAmount - loan.remainingBalance;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Loan Details')),
+      appBar: AppBar(
+        leading: widget.onBack == null
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: widget.onBack,
+              ),
+        title: const Text('Loan Details'),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.add_alert_outlined),
+            tooltip: 'Add reminder',
+            onPressed: () => showReminderFormSheet(
+              context,
+              targetType: 'loan',
+              targetId: loan.id,
+              prefillTitle: '${loan.name} payment',
+              prefillDueAt: loan.nextDueDate,
+            ),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         child: Column(

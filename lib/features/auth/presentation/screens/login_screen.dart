@@ -9,6 +9,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const String _authRedirectUrl =
+      'com.example.personaltrackerexpenses://login-callback/';
+
   final SupabaseClient _supabase = Supabase.instance.client;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -37,17 +40,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       if (_isSignUp) {
-        await _supabase.auth.signUp(email: email, password: password);
-        if (!mounted) return;
-        _showMessage(
-          'Account created. Check your email if confirmation is required.',
+        await _supabase.auth.signUp(
+          email: email,
+          password: password,
+          emailRedirectTo: _authRedirectUrl,
         );
+        if (!mounted) return;
+        _passwordController.clear();
+        setState(() => _isSignUp = false);
+        _showMessage('Account created. Check your email, then sign in.');
       } else {
         await _supabase.auth.signInWithPassword(
           email: email,
           password: password,
         );
       }
+    } on AuthException catch (error) {
+      if (!mounted) return;
+      _showMessage(error.message);
     } catch (_) {
       if (!mounted) return;
       _showMessage(

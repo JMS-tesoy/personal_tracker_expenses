@@ -1,154 +1,273 @@
+// lib/features/reminders/presentation/widgets/reminder_card.dart
+
 import 'package:flutter/material.dart';
 
-import '../../../../core/utils/currency_formatter.dart';
-import '../../domain/reminder.dart';
+import '../../data/models/reminder_model.dart';
 
 class ReminderCard extends StatelessWidget {
-  const ReminderCard({super.key, required this.reminder});
+  const ReminderCard({
+    super.key,
+    required this.reminder,
+    this.onMarkDone,
+    this.onCancel,
+    this.onDelete,
+    this.onEdit,
+  });
 
   final ReminderModel reminder;
+  final VoidCallback? onMarkDone;
+  final VoidCallback? onCancel;
+  final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final TextTheme textTheme = Theme.of(context).textTheme;
-    final Color statusColor = reminder.isOverdue
-        ? colorScheme.error
-        : reminder.isDueSoon
-        ? colorScheme.primary
-        : colorScheme.onSurfaceVariant;
 
     return Card(
       elevation: 0,
-      margin: const EdgeInsets.only(bottom: 12),
       color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.72),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.86),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.70),
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    reminder.billName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _ReminderStatusChip(
-                  label: _statusLabel(reminder),
-                  color: statusColor,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _ReminderMetric(
-                    label: 'Due date',
-                    value: _formatDate(reminder.dueDate),
-                  ),
-                ),
-                Expanded(
-                  child: _ReminderMetric(
-                    label: 'Amount',
-                    value: CurrencyFormatter.format(reminder.amount),
-                  ),
-                ),
-              ],
-            ),
-            if (reminder.assignedPersonName != null) ...<Widget>[
-              const SizedBox(height: 10),
-              Text(
-                'Assigned to: ${reminder.assignedPersonName!}',
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
+            // Icon
+            Container(
+              margin: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _iconBgColor(colorScheme),
+                borderRadius: BorderRadius.circular(10),
               ),
-            ],
+              child: Icon(
+                _targetIcon(),
+                color: _iconColor(colorScheme),
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // Title + status chip
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          reminder.title,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      _StatusChip(status: reminder.status),
+                    ],
+                  ),
+                  if (reminder.message != null &&
+                      reminder.message!.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 4),
+                    Text(
+                      reminder.message!,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  // Meta row
+                  Wrap(
+                    spacing: 10,
+                    children: <Widget>[
+                      _MetaChip(
+                        icon: Icons.label_outline,
+                        label: reminder.displayTargetType,
+                        colorScheme: colorScheme,
+                      ),
+                      _MetaChip(
+                        icon: Icons.notifications_outlined,
+                        label: _formatDateTime(reminder.remindAt),
+                        colorScheme: colorScheme,
+                      ),
+                      if (reminder.dueAt != null)
+                        _MetaChip(
+                          icon: Icons.event_outlined,
+                          label: 'Due ${_formatDate(reminder.dueAt!)}',
+                          colorScheme: colorScheme,
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Actions menu
+            if (reminder.isActive)
+              PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_vert,
+                  color: colorScheme.onSurfaceVariant,
+                  size: 20,
+                ),
+                onSelected: (String val) {
+                  if (val == 'done') onMarkDone?.call();
+                  if (val == 'edit') onEdit?.call();
+                  if (val == 'cancel') onCancel?.call();
+                  if (val == 'delete') onDelete?.call();
+                },
+                itemBuilder: (_) => <PopupMenuEntry<String>>[
+                  if (onMarkDone != null)
+                    const PopupMenuItem<String>(
+                      value: 'done',
+                      child: Text('Mark as done'),
+                    ),
+                  if (onEdit != null)
+                    const PopupMenuItem<String>(
+                      value: 'edit',
+                      child: Text('Edit'),
+                    ),
+                  if (onCancel != null)
+                    const PopupMenuItem<String>(
+                      value: 'cancel',
+                      child: Text('Cancel reminder'),
+                    ),
+                  if (onDelete != null)
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: Text('Delete'),
+                    ),
+                ],
+              )
+            else
+              IconButton(
+                onPressed: onDelete,
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: colorScheme.error,
+                  size: 20,
+                ),
+                tooltip: 'Delete',
+              ),
           ],
         ),
       ),
     );
   }
 
-  String _statusLabel(ReminderModel reminder) {
-    if (reminder.isOverdue) return 'OVERDUE';
-    if (reminder.isDueSoon) return 'DUE SOON';
-    return 'UPCOMING';
+  IconData _targetIcon() {
+    return switch (reminder.targetType) {
+      'bill' => Icons.receipt_long_outlined,
+      'loan' => Icons.account_balance_outlined,
+      'person' => Icons.person_outline,
+      'payment' => Icons.payments_outlined,
+      _ => Icons.notifications_outlined,
+    };
   }
 
-  String _formatDate(DateTime date) {
-    final String m = date.month.toString().padLeft(2, '0');
-    final String d = date.day.toString().padLeft(2, '0');
-    return '$m/$d/${date.year}';
+  Color _iconBgColor(ColorScheme cs) {
+    return switch (reminder.targetType) {
+      'bill' => cs.errorContainer.withValues(alpha: 0.60),
+      'loan' => cs.primaryContainer.withValues(alpha: 0.60),
+      'person' => cs.tertiaryContainer.withValues(alpha: 0.60),
+      _ => cs.secondaryContainer.withValues(alpha: 0.60),
+    };
+  }
+
+  Color _iconColor(ColorScheme cs) {
+    return switch (reminder.targetType) {
+      'bill' => cs.onErrorContainer,
+      'loan' => cs.onPrimaryContainer,
+      'person' => cs.onTertiaryContainer,
+      _ => cs.onSecondaryContainer,
+    };
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final String mo = dt.month.toString().padLeft(2, '0');
+    final String da = dt.day.toString().padLeft(2, '0');
+    final int h = dt.hour > 12
+        ? dt.hour - 12
+        : dt.hour == 0
+        ? 12
+        : dt.hour;
+    final String mi = dt.minute.toString().padLeft(2, '0');
+    final String ampm = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$mo/$da/${dt.year} $h:$mi $ampm';
+  }
+
+  String _formatDate(DateTime dt) {
+    final String mo = dt.month.toString().padLeft(2, '0');
+    final String da = dt.day.toString().padLeft(2, '0');
+    return '$mo/$da/${dt.year}';
   }
 }
 
-class _ReminderMetric extends StatelessWidget {
-  const _ReminderMetric({required this.label, required this.value});
-
-  final String label;
-  final String value;
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.status});
+  final String status;
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final ColorScheme cs = Theme.of(context).colorScheme;
+    final Color bg = switch (status) {
+      'completed' => const Color(0xFFA7D7B5).withValues(alpha: 0.30),
+      'cancelled' => cs.errorContainer.withValues(alpha: 0.40),
+      _ => cs.primaryContainer.withValues(alpha: 0.50),
+    };
+    final Color fg = switch (status) {
+      'completed' => const Color(0xFF2E7D52),
+      'cancelled' => cs.onErrorContainer,
+      _ => cs.onPrimaryContainer,
+    };
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w800)),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(color: fg, fontWeight: FontWeight.w800, fontSize: 10),
+      ),
     );
   }
 }
 
-class _ReminderStatusChip extends StatelessWidget {
-  const _ReminderStatusChip({required this.label, required this.color});
-
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({
+    required this.icon,
+    required this.label,
+    required this.colorScheme,
+  });
+  final IconData icon;
   final String label;
-  final Color color;
+  final ColorScheme colorScheme;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.34)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon, size: 12, color: colorScheme.onSurfaceVariant),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: TextStyle(
+            color: colorScheme.onSurfaceVariant,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ),
+      ],
     );
   }
 }
