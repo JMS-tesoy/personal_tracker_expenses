@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../features/reminders/presentation/widgets/reminder_form_sheet.dart';
 import '../../domain/person.dart';
+import '../../domain/person_avatar.dart';
 
 class PersonCard extends StatelessWidget {
   const PersonCard({super.key, required this.person, this.onLongPress});
@@ -13,6 +14,7 @@ class PersonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
     final String? role = person.role?.trim();
+    final PersonAvatar? avatar = personAvatarById(person.avatarUrl);
     final String initials = person.name.isNotEmpty
         ? person.name
               .trim()
@@ -28,14 +30,16 @@ class PersonCard extends StatelessWidget {
       child: ListTile(
         onLongPress: onLongPress,
         leading: CircleAvatar(
-          backgroundColor: colors.primaryContainer,
-          child: Text(
-            initials,
-            style: TextStyle(
-              color: colors.onPrimaryContainer,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          backgroundColor: avatar?.backgroundColor ?? colors.primaryContainer,
+          child: avatar == null
+              ? Text(
+                  initials,
+                  style: TextStyle(
+                    color: colors.onPrimaryContainer,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              : Icon(avatar.icon, color: avatar.foregroundColor),
         ),
         title: Text(
           person.name,

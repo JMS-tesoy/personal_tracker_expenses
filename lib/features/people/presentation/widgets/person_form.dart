@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/person_avatar.dart';
+
 class PersonFormData {
-  const PersonFormData({required this.name, this.role});
+  const PersonFormData({required this.name, this.role, this.avatarUrl});
 
   final String name;
   final String? role;
+  final String? avatarUrl;
 }
 
 class PersonForm extends StatefulWidget {
@@ -26,6 +29,7 @@ class PersonForm extends StatefulWidget {
 class _PersonFormState extends State<PersonForm> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _roleController = TextEditingController();
+  String? _selectedAvatarId;
 
   @override
   void initState() {
@@ -52,26 +56,138 @@ class _PersonFormState extends State<PersonForm> {
     }
 
     widget.onSubmit(
-      PersonFormData(name: name, role: role.isEmpty ? null : role),
+      PersonFormData(
+        name: name,
+        role: role.isEmpty ? null : role,
+        avatarUrl: _selectedAvatarId,
+      ),
     );
+  }
+
+  Future<void> _chooseAvatar() async {
+    final String? selectedId = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (BuildContext sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'Choose Avatar',
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 14),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                  ),
+                  itemCount: personAvatars.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final PersonAvatar avatar = personAvatars[index];
+                    final bool isSelected = avatar.id == _selectedAvatarId;
+
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () => Navigator.of(sheetContext).pop(avatar.id),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: avatar.backgroundColor,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: isSelected
+                                ? avatar.foregroundColor
+                                : avatar.backgroundColor,
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          avatar.icon,
+                          color: avatar.foregroundColor,
+                          size: 30,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                if (_selectedAvatarId != null) ...<Widget>[
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(sheetContext).pop(''),
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Remove avatar'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || selectedId == null) return;
+    setState(() {
+      _selectedAvatarId = selectedId.isEmpty ? null : selectedId;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
+    final PersonAvatar? selectedAvatar = personAvatarById(_selectedAvatarId);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        // Avatar placeholder
         Center(
-          child: CircleAvatar(
-            radius: 40,
-            backgroundColor: colors.primaryContainer,
-            child: Icon(
-              Icons.person,
-              size: 40,
-              color: colors.onPrimaryContainer,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: _chooseAvatar,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: <Widget>[
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: selectedAvatar?.backgroundColor ??
+                      colors.primaryContainer,
+                  child: Icon(
+                    selectedAvatar?.icon ?? Icons.person,
+                    size: 40,
+                    color: selectedAvatar?.foregroundColor ??
+                        colors.onPrimaryContainer,
+                  ),
+                ),
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: colors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: colors.surface, width: 2),
+                    ),
+                    child: Icon(
+                      Icons.add,
+                      size: 18,
+                      color: colors.onPrimary,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

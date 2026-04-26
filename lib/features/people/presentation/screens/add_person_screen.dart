@@ -34,6 +34,7 @@ class _AddPersonScreenState extends State<AddPersonScreen> {
         'user_id': userId,
         'name': data.name,
         'role': data.role,
+        'avatar_url': data.avatarUrl,
       });
 
       if (!mounted) return;
