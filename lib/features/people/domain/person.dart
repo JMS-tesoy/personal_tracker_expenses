@@ -14,15 +14,23 @@ class Person {
   final DateTime? createdAt;
 
   factory Person.fromMap(Map<String, dynamic> map) {
+    final String? createdAtText = map['created_at']?.toString();
+
     return Person(
-      id: map['id'] as String,
-      name: map['name'] as String,
-      avatarUrl: map['avatar_url'] as String?,
-      role: map['role'] as String?,
-      createdAt: map['created_at'] != null
-          ? DateTime.tryParse(map['created_at'] as String)
-          : null,
+      id: map['id']?.toString() ?? '',
+      name: map['name']?.toString() ?? 'Unnamed person',
+      avatarUrl: _emptyToNull(map['avatar_url']),
+      role: _emptyToNull(map['role']),
+      createdAt: createdAtText == null
+          ? null
+          : DateTime.tryParse(createdAtText),
     );
+  }
+
+  static String? _emptyToNull(dynamic value) {
+    final String? text = value?.toString().trim();
+    if (text == null || text.isEmpty) return null;
+    return text;
   }
 
   Map<String, dynamic> toMap() {

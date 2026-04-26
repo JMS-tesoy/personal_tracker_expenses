@@ -8,10 +8,16 @@ class PersonFormData {
 }
 
 class PersonForm extends StatefulWidget {
-  const PersonForm({super.key, required this.onSubmit, this.isSaving = false});
+  const PersonForm({
+    super.key,
+    required this.onSubmit,
+    this.isSaving = false,
+    this.initialRole,
+  });
 
   final void Function(PersonFormData data) onSubmit;
   final bool isSaving;
+  final String? initialRole;
 
   @override
   State<PersonForm> createState() => _PersonFormState();
@@ -20,6 +26,12 @@ class PersonForm extends StatefulWidget {
 class _PersonFormState extends State<PersonForm> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _roleController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _roleController.text = widget.initialRole ?? '';
+  }
 
   @override
   void dispose() {

@@ -5,7 +5,9 @@ import '../../../../core/auth/current_user.dart';
 import '../widgets/person_form.dart';
 
 class AddPersonScreen extends StatefulWidget {
-  const AddPersonScreen({super.key});
+  const AddPersonScreen({super.key, this.initialRole});
+
+  final String? initialRole;
 
   @override
   State<AddPersonScreen> createState() => _AddPersonScreenState();
@@ -43,7 +45,11 @@ class _AddPersonScreenState extends State<AddPersonScreen> {
       appBar: AppBar(title: const Text('Add Person')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-        child: PersonForm(onSubmit: _save, isSaving: _isSaving),
+        child: PersonForm(
+          onSubmit: _save,
+          isSaving: _isSaving,
+          initialRole: widget.initialRole,
+        ),
       ),
     );
   }

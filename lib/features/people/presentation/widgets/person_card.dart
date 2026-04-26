@@ -11,6 +11,7 @@ class PersonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
+    final String? role = person.role?.trim();
     final String initials = person.name.isNotEmpty
         ? person.name
               .trim()
@@ -38,8 +39,8 @@ class PersonCard extends StatelessWidget {
           person.name,
           style: const TextStyle(fontWeight: FontWeight.w600),
         ),
-        subtitle: person.role != null && person.role!.isNotEmpty
-            ? Text(person.role!, style: TextStyle(color: colors.outline))
+        subtitle: role != null && role.isNotEmpty
+            ? Text(role, style: TextStyle(color: colors.outline))
             : null,
         trailing: IconButton(
           icon: Icon(Icons.add_alert_outlined, color: colors.primary),
