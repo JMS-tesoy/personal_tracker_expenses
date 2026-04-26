@@ -302,6 +302,183 @@ class _PeopleScreenState extends State<PeopleScreen> {
     }
   }
 
+  Future<void> _confirmDeletePerson(Person person) async {
+    final _PersonDeleteLinks links = await _loadPersonDeleteLinks(person);
+    if (!mounted) return;
+
+    final String pin = ((DateTime.now().millisecondsSinceEpoch % 9000) + 1000)
+        .toString();
+    final String? role = person.role?.trim();
+    final String displayRole = role == null || role.isEmpty
+        ? 'Ungrouped'
+        : role;
+    final TextEditingController pinController = TextEditingController();
+    String typedPin = '';
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext _) {
+        return StatefulBuilder(
+          builder: (BuildContext dialogContext, StateSetter setDialogState) {
+            final bool pinMatches = typedPin == pin;
+
+            return AlertDialog(
+              title: const Text('Delete Person'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('Delete "${person.name}"? This cannot be undone.'),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Role / group: $displayRole',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Linked responsibilities',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    _DeleteResponsibilityRow(
+                      label: 'Assigned bills',
+                      count: links.assignedBills,
+                    ),
+                    _DeleteResponsibilityRow(
+                      label: 'Paid bills',
+                      count: links.paidBills,
+                    ),
+                    _DeleteResponsibilityRow(
+                      label: 'Reminders',
+                      count: links.reminders,
+                    ),
+                    _DeleteResponsibilityRow(
+                      label: 'Loan payments',
+                      count: links.loanPayments,
+                    ),
+                    _DeleteResponsibilityRow(
+                      label: 'Uploaded proofs',
+                      count: links.uploadedProofs,
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      links.total > 0
+                          ? 'This person has linked records. Supabase may block deletion until those records are removed or reassigned.'
+                          : 'No linked responsibilities were found.',
+                    ),
+                    const SizedBox(height: 14),
+                    Text('PIN: $pin'),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: pinController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Enter PIN to confirm',
+                      ),
+                      onChanged: (String value) {
+                        setDialogState(() => typedPin = value.trim());
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: pinMatches
+                      ? () => Navigator.of(dialogContext).pop(true)
+                      : null,
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      pinController.dispose();
+    });
+
+    if (confirmed != true) return;
+
+    try {
+      final String userId = requireCurrentUserId();
+      await _supabase
+          .from('people')
+          .delete()
+          .eq('id', person.id)
+          .eq('user_id', userId);
+      await _loadPeople();
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage(
+        'Failed to delete person. Remove related bills, loans, or reminders first.',
+      );
+    }
+  }
+
+  Future<_PersonDeleteLinks> _loadPersonDeleteLinks(Person person) async {
+    final String userId = requireCurrentUserId();
+    final String personId = person.id;
+
+    return _PersonDeleteLinks(
+      assignedBills: await _countLinkedRows(
+        table: 'bills',
+        column: 'assigned_person_id',
+        personId: personId,
+        userId: userId,
+      ),
+      paidBills: await _countLinkedRows(
+        table: 'bills',
+        column: 'paid_by_person_id',
+        personId: personId,
+        userId: userId,
+      ),
+      reminders: await _countLinkedRows(
+        table: 'reminders',
+        column: 'person_id',
+        personId: personId,
+        userId: userId,
+      ),
+      loanPayments: await _countLinkedRows(
+        table: 'loan_payment_contributions',
+        column: 'person_id',
+        personId: personId,
+        userId: userId,
+      ),
+      uploadedProofs: await _countLinkedRows(
+        table: 'attachments',
+        column: 'uploaded_by_person_id',
+        personId: personId,
+        userId: userId,
+      ),
+    );
+  }
+
+  Future<int> _countLinkedRows({
+    required String table,
+    required String column,
+    required String personId,
+    required String userId,
+  }) async {
+    try {
+      final List<dynamic> rows = await _supabase
+          .from(table)
+          .select('id')
+          .eq('user_id', userId)
+          .eq(column, personId);
+      return rows.length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   Future<String?> _showGroupNameDialog({
     required String title,
     String initialName = '',
@@ -313,7 +490,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
 
     final String? result = await showDialog<String>(
       context: context,
-      builder: (BuildContext ctx) {
+      builder: (BuildContext _) {
         return StatefulBuilder(
           builder: (BuildContext dialogContext, StateSetter setDialogState) {
             return AlertDialog(
@@ -329,7 +506,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
               ),
               actions: <Widget>[
                 TextButton(
-                  onPressed: () => Navigator.pop(ctx),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
@@ -341,7 +518,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
                       );
                       return;
                     }
-                    Navigator.pop(ctx, value);
+                    Navigator.of(dialogContext).pop(value);
                   },
                   child: const Text('Save'),
                 ),
@@ -352,7 +529,9 @@ class _PeopleScreenState extends State<PeopleScreen> {
       },
     );
 
-    controller.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
     return result;
   }
 
@@ -530,7 +709,11 @@ class _PeopleScreenState extends State<PeopleScreen> {
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         itemCount: people.length,
         itemBuilder: (BuildContext context, int index) {
-          return PersonCard(person: people[index]);
+          final Person person = people[index];
+          return PersonCard(
+            person: person,
+            onLongPress: () => _confirmDeletePerson(person),
+          );
         },
       ),
     );
@@ -620,6 +803,58 @@ class _PeopleGroup {
 
   factory _PeopleGroup.fromMap(Map<String, dynamic> map) {
     return _PeopleGroup(id: map['id'].toString(), name: map['name'].toString());
+  }
+}
+
+class _PersonDeleteLinks {
+  const _PersonDeleteLinks({
+    required this.assignedBills,
+    required this.paidBills,
+    required this.reminders,
+    required this.loanPayments,
+    required this.uploadedProofs,
+  });
+
+  final int assignedBills;
+  final int paidBills;
+  final int reminders;
+  final int loanPayments;
+  final int uploadedProofs;
+
+  int get total {
+    return assignedBills +
+        paidBills +
+        reminders +
+        loanPayments +
+        uploadedProofs;
+  }
+}
+
+class _DeleteResponsibilityRow extends StatelessWidget {
+  const _DeleteResponsibilityRow({required this.label, required this.count});
+
+  final String label;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: <Widget>[
+          Expanded(child: Text(label)),
+          Text(
+            '$count',
+            style: TextStyle(
+              color: count > 0 ? colors.error : colors.onSurfaceVariant,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

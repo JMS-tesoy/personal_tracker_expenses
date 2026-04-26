@@ -4,9 +4,10 @@ import '../../../../features/reminders/presentation/widgets/reminder_form_sheet.
 import '../../domain/person.dart';
 
 class PersonCard extends StatelessWidget {
-  const PersonCard({super.key, required this.person});
+  const PersonCard({super.key, required this.person, this.onLongPress});
 
   final Person person;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +26,7 @@ class PersonCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: ListTile(
+        onLongPress: onLongPress,
         leading: CircleAvatar(
           backgroundColor: colors.primaryContainer,
           child: Text(
