@@ -18,7 +18,6 @@ class AttachmentService {
   final SupabaseClient _supabase;
   final ImagePicker _picker = ImagePicker();
 
-  // IMPORTANT: bucket name must match exactly what was created in Supabase Storage
   static const String _bucket = 'payment-proofs';
   static const int _maxBytes = 5 * 1024 * 1024; // 5 MB
 
@@ -33,12 +32,14 @@ class AttachmentService {
       throw Exception('Missing bill id.');
     }
 
-    // 1. Pick image
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 85,
     );
-    if (picked == null) throw const PaymentProofUploadCancelled();
+
+    if (picked == null) {
+      throw const PaymentProofUploadCancelled();
+    }
 
     final String rawName = picked.name.trim().isEmpty
         ? picked.path.split(Platform.pathSeparator).last
@@ -46,6 +47,7 @@ class AttachmentService {
 
     final String extension = _extensionFrom(rawName);
     final String? mimeType = picked.mimeType;
+
     final bool isImage =
         (mimeType != null && mimeType.startsWith('image/')) ||
         _allowedImageExtensions.contains(extension);
@@ -56,44 +58,52 @@ class AttachmentService {
 
     final File file = File(picked.path);
     final int size = await file.length();
+
     if (size > _maxBytes) {
       throw Exception('Image exceeds 5 MB limit.');
     }
 
-    // 2. Build a safe unique storage path (no subfolder nesting issues)
     final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
     final String safeExt = extension.isEmpty ? 'jpg' : extension;
-    final String storagePath = '$safeBillId-$timestamp.$safeExt';
+    final String safeFileName = _sanitizeFileName(rawName, safeExt);
 
-    debugPrint('AttachmentService: uploading to $_bucket/$storagePath');
+    final String storagePath =
+        '$userId/bills/$safeBillId/${timestamp}_$safeFileName';
 
-    // 3. Upload to Supabase Storage
+    debugPrint('AttachmentService: bucket=$_bucket');
+    debugPrint('AttachmentService: storagePath=$storagePath');
+    debugPrint('AttachmentService: mimeType=$mimeType');
+    debugPrint('AttachmentService: size=$size');
+
     try {
-      await _supabase.storage
-          .from(_bucket)
-          .upload(
+      await _supabase.storage.from(_bucket).upload(
             storagePath,
             file,
             fileOptions: FileOptions(
               upsert: false,
-              contentType: (mimeType != null && mimeType.startsWith('image/'))
-                  ? mimeType
-                  : 'image/jpeg',
+              contentType: _safeContentType(mimeType, safeExt),
             ),
           );
-    } catch (e) {
-      debugPrint('AttachmentService: Supabase Storage upload error: $e');
+    } on StorageException catch (error, stackTrace) {
+      debugPrint('AttachmentService: StorageException');
+      debugPrint('message=${error.message}');
+      debugPrint('statusCode=${error.statusCode}');
+      debugPrint('error=${error.error}');
+      debugPrintStack(stackTrace: stackTrace);
+      rethrow;
+    } catch (error, stackTrace) {
+      debugPrint('AttachmentService: Storage upload failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
       rethrow;
     }
 
-    // 4. Get public URL
     final String fileUrl =
         _supabase.storage.from(_bucket).getPublicUrl(storagePath);
 
-    debugPrint('AttachmentService: file uploaded, public URL: $fileUrl');
+    debugPrint('AttachmentService: publicUrl=$fileUrl');
 
-    // 5. Save record to attachments table
     final List<dynamic> result;
+
     try {
       result = await _supabase
           .from('attachments')
@@ -107,15 +117,27 @@ class AttachmentService {
             'notes': null,
           })
           .select();
-    } catch (e) {
-      debugPrint('AttachmentService: DB insert error: $e');
+    } on PostgrestException catch (error, stackTrace) {
+      debugPrint('AttachmentService: PostgrestException during DB insert');
+      debugPrint('message=${error.message}');
+      debugPrint('code=${error.code}');
+      debugPrint('details=${error.details}');
+      debugPrint('hint=${error.hint}');
+      debugPrintStack(stackTrace: stackTrace);
       rethrow;
+    } catch (error, stackTrace) {
+      debugPrint('AttachmentService: DB insert failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      rethrow;
+    }
+
+    if (result.isEmpty) {
+      throw Exception('Attachment insert returned no record.');
     }
 
     final AttachmentModel attachment =
         AttachmentModel.fromMap(result.first as Map<String, dynamic>);
 
-    // 6. Log activity
     await ActivityLogRepository.instance.createLog(
       targetType: 'payment_proof',
       action: 'proof_uploaded',
@@ -127,6 +149,7 @@ class AttachmentService {
         'file_name': rawName,
         'file_url': fileUrl,
         'bill_id': safeBillId,
+        'storage_path': storagePath,
       },
     );
 
@@ -136,6 +159,7 @@ class AttachmentService {
   Future<List<AttachmentModel>> fetchForBill(String billId) async {
     final String safeBillId = billId.trim();
     final String userId = requireCurrentUserId();
+
     if (safeBillId.isEmpty) return <AttachmentModel>[];
 
     final List<dynamic> response = await _supabase
@@ -147,26 +171,25 @@ class AttachmentService {
         .order('created_at', ascending: false);
 
     return response
-        .map((dynamic e) =>
-            AttachmentModel.fromMap(e as Map<String, dynamic>))
+        .map(
+          (dynamic e) => AttachmentModel.fromMap(e as Map<String, dynamic>),
+        )
         .toList();
   }
 
   Future<void> delete(AttachmentModel attachment) async {
     final String userId = requireCurrentUserId();
-    final Uri uri = Uri.parse(attachment.fileUrl);
+    final String? storagePath = _storagePathFromPublicUrl(attachment.fileUrl);
 
-    // Extract just the filename from the URL (flat path, no subfolders)
-    final String storagePath = uri.pathSegments.last;
+    if (storagePath != null && storagePath.isNotEmpty) {
+      debugPrint('AttachmentService: deleting $_bucket/$storagePath');
 
-    debugPrint('AttachmentService: deleting $_bucket/$storagePath');
-
-    try {
-      await _supabase.storage
-          .from(_bucket)
-          .remove(<String>[storagePath]);
-    } catch (e) {
-      debugPrint('AttachmentService: Storage delete error: $e');
+      try {
+        await _supabase.storage.from(_bucket).remove(<String>[storagePath]);
+      } catch (error, stackTrace) {
+        debugPrint('AttachmentService: Storage delete failed: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
     }
 
     await _supabase
@@ -203,5 +226,51 @@ class AttachmentService {
     final int dotIndex = fileName.lastIndexOf('.');
     if (dotIndex == -1 || dotIndex == fileName.length - 1) return '';
     return fileName.substring(dotIndex + 1).toLowerCase();
+  }
+
+  String _sanitizeFileName(String fileName, String fallbackExtension) {
+    String cleaned = fileName.trim().toLowerCase();
+
+    cleaned = cleaned.replaceAll(RegExp(r'\s+'), '_');
+    cleaned = cleaned.replaceAll(RegExp(r'[^a-z0-9._-]'), '');
+
+    if (cleaned.isEmpty || !cleaned.contains('.')) {
+      cleaned = 'payment_proof.$fallbackExtension';
+    }
+
+    return cleaned;
+  }
+
+  String _safeContentType(String? mimeType, String extension) {
+    if (mimeType != null && mimeType.startsWith('image/')) {
+      return mimeType;
+    }
+
+    switch (extension) {
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'heic':
+        return 'image/heic';
+      case 'heif':
+        return 'image/heif';
+      case 'jpg':
+      case 'jpeg':
+      default:
+        return 'image/jpeg';
+    }
+  }
+
+  String? _storagePathFromPublicUrl(String fileUrl) {
+    final Uri uri = Uri.tryParse(fileUrl) ?? Uri();
+    final List<String> segments = uri.pathSegments;
+
+    final int bucketIndex = segments.indexOf(_bucket);
+    if (bucketIndex == -1 || bucketIndex == segments.length - 1) {
+      return null;
+    }
+
+    return segments.sublist(bucketIndex + 1).join('/');
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../features/activity/data/repositories/activity_log_repository.dart';
 import '../../data/attachment_service.dart';
 import '../../domain/attachment.dart';
 
@@ -22,47 +21,45 @@ class ProofUploadBox extends StatefulWidget {
 
 class _ProofUploadBoxState extends State<ProofUploadBox> {
   final AttachmentService _service = AttachmentService();
+
   bool _uploading = false;
 
   Future<void> _upload() async {
     if (widget.billId.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to upload payment proof')),
+        const SnackBar(content: Text('Missing bill record.')),
       );
       return;
     }
 
     setState(() => _uploading = true);
+
     try {
       final AttachmentModel attachment = await _service.pickAndUpload(
         billId: widget.billId,
         uploadedByPersonId: widget.uploadedByPersonId,
       );
-      if (!mounted) return;
-
-      await ActivityLogRepository.instance.createLog(
-        targetType: 'payment_proof',
-        action: 'proof_uploaded',
-        title: 'Payment proof uploaded',
-        targetId: widget.billId,
-        personId: widget.uploadedByPersonId,
-        description: 'Proof uploaded for bill.',
-        metadata: <String, dynamic>{
-          'file_name': attachment.fileName ?? '',
-          'file_url': attachment.fileUrl,
-          'bill_id': widget.billId,
-        },
-      );
 
       await widget.onUploaded(attachment);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment proof uploaded.')),
+      );
     } on PaymentProofUploadCancelled {
       return;
     } catch (error, stackTrace) {
-      debugPrint('Failed to upload payment proof: $error');
+      debugPrint('ProofUploadBox: Failed to upload payment proof.');
+      debugPrint('ProofUploadBox error: $error');
       debugPrintStack(stackTrace: stackTrace);
+
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to upload payment proof')),
+        const SnackBar(
+          content: Text('Failed to upload payment proof. Check console logs.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _uploading = false);
