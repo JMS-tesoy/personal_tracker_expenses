@@ -17,6 +17,7 @@ class AssignedItemsList extends StatelessWidget {
         _Section(
           icon: Icons.receipt_long_outlined,
           title: 'Assigned Bills',
+          count: summary.assignedBillsCount,
           items: summary.assignedBills,
           emptyMessage: 'No assigned bills yet.',
           itemBuilder: (Map<String, dynamic> item) => _BillTile(bill: item),
@@ -24,6 +25,7 @@ class AssignedItemsList extends StatelessWidget {
         _Section(
           icon: Icons.check_circle_outline,
           title: 'Paid Bills',
+          count: summary.paidBillsCount,
           items: summary.paidBills,
           emptyMessage: 'No bills paid by this person yet.',
           itemBuilder: (Map<String, dynamic> item) => _BillTile(bill: item),
@@ -31,6 +33,7 @@ class AssignedItemsList extends StatelessWidget {
         _Section(
           icon: Icons.notifications_outlined,
           title: 'Reminders',
+          count: summary.remindersCount,
           items: summary.reminders,
           emptyMessage: 'No reminders for this person.',
           itemBuilder: (Map<String, dynamic> item) =>
@@ -39,6 +42,7 @@ class AssignedItemsList extends StatelessWidget {
         _Section(
           icon: Icons.history_outlined,
           title: 'Recent Activity',
+          count: summary.activityCount,
           items: summary.recentActivity,
           emptyMessage: 'No recent activity.',
           itemBuilder: (Map<String, dynamic> item) =>
@@ -47,6 +51,7 @@ class AssignedItemsList extends StatelessWidget {
         _Section(
           icon: Icons.attach_file_outlined,
           title: 'Proof Uploads',
+          count: summary.attachmentsCount,
           items: summary.attachments,
           emptyMessage: 'No proof uploads.',
           itemBuilder: (Map<String, dynamic> item) =>
@@ -57,12 +62,11 @@ class AssignedItemsList extends StatelessWidget {
   }
 }
 
-// ── Section wrapper ───────────────────────────────────────────────────────────
-
 class _Section extends StatefulWidget {
   const _Section({
     required this.icon,
     required this.title,
+    required this.count,
     required this.items,
     required this.emptyMessage,
     required this.itemBuilder,
@@ -70,6 +74,7 @@ class _Section extends StatefulWidget {
 
   final IconData icon;
   final String title;
+  final int count;
   final List<Map<String, dynamic>> items;
   final String emptyMessage;
   final Widget Function(Map<String, dynamic>) itemBuilder;
@@ -88,7 +93,6 @@ class _SectionState extends State<_Section> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        // Header row
         InkWell(
           onTap: () => setState(() => _expanded = !_expanded),
           borderRadius: BorderRadius.circular(10),
@@ -109,13 +113,15 @@ class _SectionState extends State<_Section> {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: cs.primaryContainer.withValues(alpha: 0.50),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '${widget.items.length}',
+                    '${widget.count}',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -135,7 +141,6 @@ class _SectionState extends State<_Section> {
             ),
           ),
         ),
-
         if (_expanded) ...<Widget>[
           if (widget.items.isEmpty)
             Padding(
@@ -152,7 +157,6 @@ class _SectionState extends State<_Section> {
             ...widget.items.map(widget.itemBuilder),
           const SizedBox(height: 4),
         ],
-
         Divider(
           height: 1,
           color: cs.outlineVariant.withValues(alpha: 0.50),
@@ -163,24 +167,28 @@ class _SectionState extends State<_Section> {
   }
 }
 
-// ── Tile widgets ──────────────────────────────────────────────────────────────
-
 class _BillTile extends StatelessWidget {
   const _BillTile({required this.bill});
+
   final Map<String, dynamic> bill;
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
-    final String name = bill['name'] as String? ?? 'Bill';
+    final String name = _stringValue(bill['name'], fallback: 'Bill');
     final dynamic amount = bill['amount'];
-    final String status = bill['status'] as String? ?? '';
-    final String? dueDate = bill['due_date'] as String?;
+    final String status = _stringValue(bill['status']);
+    final String dueText = _billDueText(bill);
+    final String paidText = _billPaidText(bill);
 
     return _ItemRow(
       leading: Icons.receipt_outlined,
       title: name,
-      subtitle: dueDate != null ? 'Due: ${_fmtDate(dueDate)}' : null,
+      subtitle: <String>[
+        if (dueText.isNotEmpty) dueText,
+        if (paidText.isNotEmpty) paidText,
+        if (status.isNotEmpty) status.toUpperCase(),
+      ].join(' • '),
       trailing: amount != null ? '₱${_fmtNum(amount)}' : null,
       trailingColor: status == 'paid' ? const Color(0xFF2E7D52) : cs.primary,
     );
@@ -189,20 +197,21 @@ class _BillTile extends StatelessWidget {
 
 class _ReminderTile extends StatelessWidget {
   const _ReminderTile({required this.reminder});
+
   final Map<String, dynamic> reminder;
 
   @override
   Widget build(BuildContext context) {
-    final String title = reminder['title'] as String? ?? 'Reminder';
-    final String? message = reminder['message'] as String?;
-    final String? remindAt = reminder['remind_at'] as String?;
-    final String status = reminder['status'] as String? ?? 'active';
+    final String title = _stringValue(reminder['title'], fallback: 'Reminder');
+    final String message = _stringValue(reminder['message']);
+    final String remindAt = _stringValue(reminder['remind_at']);
+    final String status = _stringValue(reminder['status'], fallback: 'active');
 
     return _ItemRow(
       leading: Icons.notifications_outlined,
       title: title,
-      subtitle: message?.isNotEmpty == true ? message : null,
-      trailing: remindAt != null ? _fmtDate(remindAt) : null,
+      subtitle: message.isNotEmpty ? message : null,
+      trailing: remindAt.isNotEmpty ? _fmtDate(remindAt) : null,
       trailingColor: status == 'active'
           ? Theme.of(context).colorScheme.primary
           : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -212,41 +221,60 @@ class _ReminderTile extends StatelessWidget {
 
 class _ActivityTile extends StatelessWidget {
   const _ActivityTile({required this.activity});
+
   final Map<String, dynamic> activity;
 
   @override
   Widget build(BuildContext context) {
-    final String action = activity['action'] as String? ?? 'Activity';
-    final String? description = activity['description'] as String?;
-    final String? createdAt = activity['created_at'] as String?;
+    final String title = _stringValue(
+      activity['title'],
+      fallback: _stringValue(activity['action'], fallback: 'Activity'),
+    );
+    final String description = _stringValue(activity['description']);
+    final String createdAt = _stringValue(activity['created_at']);
 
     return _ItemRow(
       leading: Icons.history_outlined,
-      title: action,
-      subtitle: description,
-      trailing: createdAt != null ? _fmtDate(createdAt) : null,
+      title: title,
+      subtitle: description.isNotEmpty ? description : null,
+      trailing: createdAt.isNotEmpty ? _fmtDate(createdAt) : null,
     );
   }
 }
 
 class _AttachmentTile extends StatelessWidget {
   const _AttachmentTile({required this.attachment});
+
   final Map<String, dynamic> attachment;
 
   @override
   Widget build(BuildContext context) {
-    final String name = attachment['file_name'] as String? ?? 'File';
-    final String? createdAt = attachment['created_at'] as String?;
+    final String name = _stringValue(attachment['file_name'], fallback: 'File');
+    final String createdAt = _stringValue(attachment['created_at']);
+    final Map<String, dynamic>? device = _deviceMap(attachment['user_devices']);
+    final String deviceName = _stringValue(device?['device_name']);
+    final String platform = _stringValue(device?['platform']);
 
     return _ItemRow(
       leading: Icons.attach_file_outlined,
       title: name,
-      trailing: createdAt != null ? _fmtDate(createdAt) : null,
+      subtitle: deviceName.isNotEmpty
+          ? platform.isNotEmpty
+              ? 'Device: $deviceName • $platform'
+              : 'Device: $deviceName'
+          : null,
+      trailing: createdAt.isNotEmpty ? _fmtDate(createdAt) : null,
     );
   }
-}
 
-// ── Shared row ────────────────────────────────────────────────────────────────
+  Map<String, dynamic>? _deviceMap(dynamic raw) {
+    if (raw is Map) {
+      return Map<String, dynamic>.from(raw);
+    }
+
+    return null;
+  }
+}
 
 class _ItemRow extends StatelessWidget {
   const _ItemRow({
@@ -311,8 +339,6 @@ class _ItemRow extends StatelessWidget {
   }
 }
 
-// ── Shared helpers ────────────────────────────────────────────────────────────
-
 String _fmtDate(String iso) {
   try {
     final DateTime dt = DateTime.parse(iso).toLocal();
@@ -334,4 +360,30 @@ String _fmtNum(dynamic value) {
   } catch (_) {
     return value.toString();
   }
+}
+
+String _stringValue(dynamic value, {String fallback = ''}) {
+  if (value == null) return fallback;
+
+  final String text = value.toString().trim();
+  if (text.isEmpty || text.toLowerCase() == 'null') return fallback;
+
+  return text;
+}
+
+String _billDueText(Map<String, dynamic> bill) {
+  final String dueDate = _stringValue(bill['due_date']);
+  if (dueDate.isNotEmpty) return 'Due ${_fmtDate(dueDate)}';
+
+  final String dueDay = _stringValue(bill['due_day']);
+  if (dueDay.isNotEmpty) return 'Due day $dueDay';
+
+  return '';
+}
+
+String _billPaidText(Map<String, dynamic> bill) {
+  final String paidOn = _stringValue(bill['paid_on']);
+  if (paidOn.isEmpty) return '';
+
+  return 'Paid ${_fmtDate(paidOn)}';
 }

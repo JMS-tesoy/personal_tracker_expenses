@@ -22,26 +22,83 @@ class PersonDetailsScreen extends StatefulWidget {
   State<PersonDetailsScreen> createState() => _PersonDetailsScreenState();
 }
 
-class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
+class _PersonDetailsScreenState extends State<PersonDetailsScreen>
+    with WidgetsBindingObserver {
   PersonSummary _summary = PersonSummary.empty;
   bool _isLoading = true;
+  bool _isRefreshing = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addObserver(this);
+    _load(showLoading: true);
   }
 
-  Future<void> _load() async {
-    setState(() => _isLoading = true);
-    final PersonSummary summary =
-        await PeopleRepository.instance.fetchSummary(widget.person.id);
-    if (!mounted) return;
-    setState(() {
-      _summary = summary;
-      _isLoading = false;
-    });
+  @override
+  void didUpdateWidget(covariant PersonDetailsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.person.id != widget.person.id) {
+      _summary = PersonSummary.empty;
+      _load(showLoading: true);
+    }
   }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _load(showLoading: false);
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  Future<void> _load({bool showLoading = false}) async {
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    } else if (mounted) {
+      setState(() {
+        _isRefreshing = true;
+        _errorMessage = null;
+      });
+    }
+
+    try {
+      final PersonSummary summary =
+          await PeopleRepository.instance.fetchSummary(widget.person.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        _summary = summary;
+        _isLoading = false;
+        _isRefreshing = false;
+        _errorMessage = null;
+      });
+    } catch (error, stackTrace) {
+      debugPrint('PersonDetailsScreen._load error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _isRefreshing = false;
+        _errorMessage = 'Failed to load person summary.';
+      });
+    }
+  }
+
+  Future<void> _refresh() => _load(showLoading: false);
 
   void _pop() {
     if (widget.onBack != null) {
@@ -52,6 +109,10 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
   }
 
   Future<void> _showAssignedBillsDialog() async {
+    await _refresh();
+
+    if (!mounted) return;
+
     await _showLinkedItemsDialog(
       title: '${widget.person.displayName} assigned bills',
       items: _summary.assignedBills,
@@ -64,6 +125,10 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
   }
 
   Future<void> _showPaidBillsDialog() async {
+    await _refresh();
+
+    if (!mounted) return;
+
     await _showLinkedItemsDialog(
       title: '${widget.person.displayName} paid bills',
       items: _summary.paidBills,
@@ -76,6 +141,10 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
   }
 
   Future<void> _showRemindersDialog() async {
+    await _refresh();
+
+    if (!mounted) return;
+
     await _showLinkedItemsDialog(
       title: '${widget.person.displayName} reminders',
       items: _summary.reminders,
@@ -85,6 +154,10 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
   }
 
   Future<void> _showProofsDialog() async {
+    await _refresh();
+
+    if (!mounted) return;
+
     await _showLinkedItemsDialog(
       title: '${widget.person.displayName} proofs',
       items: _summary.attachments,
@@ -134,18 +207,22 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
   }
 
   Widget _buildBillDialogTile(Map<String, dynamic> bill, IconData icon) {
-    final String name = bill['name'] as String? ?? 'Bill';
+    final String name = _stringValue(bill['name'], fallback: 'Bill');
     final dynamic amount = bill['amount'];
-    final String? dueDate = bill['due_date'] as String?;
-    final String status = bill['status'] as String? ?? '';
+    final String status = _stringValue(bill['status']);
+    final String dueText = _billDueText(bill);
+    final String paidText = _billPaidText(bill);
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon),
       title: Text(name),
-      subtitle: dueDate == null
-          ? null
-          : Text('Due ${_formatDialogDate(dueDate)}'),
+      subtitle: Text(
+        <String>[
+          if (dueText.isNotEmpty) dueText,
+          if (paidText.isNotEmpty) paidText,
+        ].join(' • '),
+      ),
       trailing: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -158,28 +235,29 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
   }
 
   Widget _buildReminderDialogTile(Map<String, dynamic> reminder) {
-    final String title = reminder['title'] as String? ?? 'Reminder';
-    final String? message = reminder['message'] as String?;
-    final String? remindAt = reminder['remind_at'] as String?;
+    final String title = _stringValue(reminder['title'], fallback: 'Reminder');
+    final String message = _stringValue(reminder['message']);
+    final String remindAt = _stringValue(reminder['remind_at']);
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.notifications_outlined),
       title: Text(title),
-      subtitle: message != null && message.isNotEmpty ? Text(message) : null,
-      trailing: remindAt == null ? null : Text(_formatDialogDate(remindAt)),
+      subtitle: message.isNotEmpty ? Text(message) : null,
+      trailing: remindAt.isEmpty ? null : Text(_formatDialogDate(remindAt)),
     );
   }
 
   Widget _buildProofDialogTile(Map<String, dynamic> attachment) {
-    final String fileName = attachment['file_name'] as String? ?? 'Proof';
-    final String? createdAt = attachment['created_at'] as String?;
+    final String fileName =
+        _stringValue(attachment['file_name'], fallback: 'Proof');
+    final String createdAt = _stringValue(attachment['created_at']);
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.attach_file_outlined),
       title: Text(fileName),
-      trailing: createdAt == null ? null : Text(_formatDialogDate(createdAt)),
+      trailing: createdAt.isEmpty ? null : Text(_formatDialogDate(createdAt)),
     );
   }
 
@@ -199,38 +277,51 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
         title: Text(person.displayName),
         actions: <Widget>[
           IconButton(
+            icon: const Icon(Icons.refresh_outlined),
+            tooltip: 'Refresh',
+            onPressed: _isRefreshing ? null : _refresh,
+          ),
+          IconButton(
             icon: const Icon(Icons.add_alert_outlined),
             tooltip: 'Add reminder',
             onPressed: () async {
               final dynamic result = await showReminderFormSheet(
                 context,
-                targetType:   'person',
-                personId:     person.id,
+                targetType: 'person',
+                personId: person.id,
                 prefillTitle: '${person.displayName} responsibility',
               );
-              // Reload summary so the Reminders count chip updates immediately.
+
               if (result != null && mounted) {
-                _load();
+                await _refresh();
               }
             },
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: _refresh,
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 slivers: <Widget>[
                   SliverToBoxAdapter(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        // ── Avatar + profile card ──────────────────────────
                         _ProfileCard(person: person, cs: cs),
                         const SizedBox(height: 8),
-
-                        // ── Stats row ──────────────────────────────────────
+                        if (_errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            child: _ErrorBanner(message: _errorMessage!),
+                          ),
+                        if (_isRefreshing)
+                          const Padding(
+                            padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            child: LinearProgressIndicator(minHeight: 2),
+                          ),
                         _StatsRow(
                           summary: _summary,
                           cs: cs,
@@ -240,11 +331,8 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
                           onProofsTap: _showProofsDialog,
                         ),
                         const SizedBox(height: 20),
-
-                        // ── Assigned items sections ────────────────────────
                         Padding(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: AssignedItemsList(summary: _summary),
                         ),
                         const SizedBox(height: 40),
@@ -258,10 +346,9 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
   }
 }
 
-// ── Profile card ──────────────────────────────────────────────────────────────
-
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({required this.person, required this.cs});
+
   final PersonModel person;
   final ColorScheme cs;
 
@@ -274,19 +361,16 @@ class _ProfileCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest.withValues(alpha: 0.78),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-            color: cs.outlineVariant.withValues(alpha: 0.80)),
+        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.80)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          // Avatar
           CircleAvatar(
             radius: 32,
             backgroundColor: cs.primaryContainer,
-            backgroundImage: person.avatarUrl != null
-                ? NetworkImage(person.avatarUrl!)
-                : null,
+            backgroundImage:
+                person.avatarUrl != null ? NetworkImage(person.avatarUrl!) : null,
             child: person.avatarUrl == null
                 ? Text(
                     person.initials,
@@ -299,7 +383,6 @@ class _ProfileCard extends StatelessWidget {
                 : null,
           ),
           const SizedBox(width: 16),
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -322,13 +405,15 @@ class _ProfileCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                if (person.phone != null &&
-                    person.phone!.isNotEmpty) ...<Widget>[
+                if (person.phone != null && person.phone!.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 4),
                   Row(
                     children: <Widget>[
-                      Icon(Icons.phone_outlined,
-                          size: 14, color: cs.onSurfaceVariant),
+                      Icon(
+                        Icons.phone_outlined,
+                        size: 14,
+                        color: cs.onSurfaceVariant,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         person.phone!,
@@ -340,13 +425,15 @@ class _ProfileCard extends StatelessWidget {
                     ],
                   ),
                 ],
-                if (person.email != null &&
-                    person.email!.isNotEmpty) ...<Widget>[
+                if (person.email != null && person.email!.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 2),
                   Row(
                     children: <Widget>[
-                      Icon(Icons.email_outlined,
-                          size: 14, color: cs.onSurfaceVariant),
+                      Icon(
+                        Icons.email_outlined,
+                        size: 14,
+                        color: cs.onSurfaceVariant,
+                      ),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
@@ -361,8 +448,7 @@ class _ProfileCard extends StatelessWidget {
                     ],
                   ),
                 ],
-                if (person.notes != null &&
-                    person.notes!.isNotEmpty) ...<Widget>[
+                if (person.notes != null && person.notes!.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 6),
                   Text(
                     person.notes!,
@@ -382,8 +468,6 @@ class _ProfileCard extends StatelessWidget {
     );
   }
 }
-
-// ── Stats row ─────────────────────────────────────────────────────────────────
 
 class _StatsRow extends StatelessWidget {
   const _StatsRow({
@@ -496,6 +580,33 @@ class _StatChip extends StatelessWidget {
   }
 }
 
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme cs = Theme.of(context).colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: cs.onErrorContainer,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 String _formatDialogDate(String iso) {
   try {
     final DateTime dt = DateTime.parse(iso).toLocal();
@@ -517,4 +628,30 @@ String _formatDialogAmount(dynamic value) {
   } catch (_) {
     return value.toString();
   }
+}
+
+String _stringValue(dynamic value, {String fallback = ''}) {
+  if (value == null) return fallback;
+
+  final String text = value.toString().trim();
+  if (text.isEmpty || text.toLowerCase() == 'null') return fallback;
+
+  return text;
+}
+
+String _billDueText(Map<String, dynamic> bill) {
+  final String dueDate = _stringValue(bill['due_date']);
+  if (dueDate.isNotEmpty) return 'Due ${_formatDialogDate(dueDate)}';
+
+  final String dueDay = _stringValue(bill['due_day']);
+  if (dueDay.isNotEmpty) return 'Due day $dueDay';
+
+  return '';
+}
+
+String _billPaidText(Map<String, dynamic> bill) {
+  final String paidOn = _stringValue(bill['paid_on']);
+  if (paidOn.isEmpty) return '';
+
+  return 'Paid ${_formatDialogDate(paidOn)}';
 }

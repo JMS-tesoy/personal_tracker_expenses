@@ -5,7 +5,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/person.dart';
 
-/// Lightweight summary counts for a single person.
 class PersonSummary {
   const PersonSummary({
     required this.assignedBillsCount,
@@ -34,26 +33,41 @@ class PersonSummary {
 
   static const PersonSummary empty = PersonSummary(
     assignedBillsCount: 0,
-    paidBillsCount:     0,
-    remindersCount:     0,
-    activityCount:      0,
-    attachmentsCount:   0,
-    assignedBills:      <Map<String, dynamic>>[],
-    paidBills:          <Map<String, dynamic>>[],
-    reminders:          <Map<String, dynamic>>[],
-    recentActivity:     <Map<String, dynamic>>[],
-    attachments:        <Map<String, dynamic>>[],
+    paidBillsCount: 0,
+    remindersCount: 0,
+    activityCount: 0,
+    attachmentsCount: 0,
+    assignedBills: <Map<String, dynamic>>[],
+    paidBills: <Map<String, dynamic>>[],
+    reminders: <Map<String, dynamic>>[],
+    recentActivity: <Map<String, dynamic>>[],
+    attachments: <Map<String, dynamic>>[],
   );
 }
 
 class PeopleRepository {
   PeopleRepository._();
+
   static final PeopleRepository instance = PeopleRepository._();
 
   final SupabaseClient _supabase = Supabase.instance.client;
+
   String? get _userId => _supabase.auth.currentUser?.id;
 
-  // ── Fetch all people ────────────────────────────────────────────────────────
+  static const String _billSelect =
+      'id, user_id, name, amount, due_day, status, paid_on, created_at, '
+      'assigned_person_id, paid_by_person_id';
+
+  static const String _reminderSelect =
+      'id, user_id, title, message, remind_at, status, person_id, created_at';
+
+  static const String _activitySelect =
+      'id, user_id, action, title, description, person_id, created_at';
+
+  static const String _attachmentSelect =
+      'id, user_id, related_type, related_id, file_name, file_url, '
+      'uploaded_by_person_id, uploaded_by_device_id, created_at, '
+      'user_devices:uploaded_by_device_id(device_name, platform, os_version, app_version)';
 
   Future<List<PersonModel>> fetchAll() async {
     try {
@@ -67,31 +81,33 @@ class PeopleRepository {
           .order('name');
 
       return rows.map(PersonModel.fromMap).toList();
-    } catch (e) {
-      debugPrint('PeopleRepository.fetchAll error: $e');
+    } catch (error, stackTrace) {
+      debugPrint('PeopleRepository.fetchAll error: $error');
+      debugPrintStack(stackTrace: stackTrace);
       return <PersonModel>[];
     }
   }
 
-  // ── Fetch one person ────────────────────────────────────────────────────────
-
   Future<PersonModel?> fetchById(String personId) async {
     try {
+      final String? uid = _userId;
+      if (uid == null) return null;
+
       final List<Map<String, dynamic>> rows = await _supabase
           .from('people')
           .select()
+          .eq('user_id', uid)
           .eq('id', personId)
           .limit(1);
 
       if (rows.isEmpty) return null;
       return PersonModel.fromMap(rows.first);
-    } catch (e) {
-      debugPrint('PeopleRepository.fetchById error: $e');
+    } catch (error, stackTrace) {
+      debugPrint('PeopleRepository.fetchById error: $error');
+      debugPrintStack(stackTrace: stackTrace);
       return null;
     }
   }
-
-  // ── Create ──────────────────────────────────────────────────────────────────
 
   Future<PersonModel?> create(PersonModel person) async {
     try {
@@ -102,154 +118,276 @@ class PeopleRepository {
 
       if (rows.isEmpty) return null;
       return PersonModel.fromMap(rows.first);
-    } catch (e) {
-      debugPrint('PeopleRepository.create error: $e');
+    } catch (error, stackTrace) {
+      debugPrint('PeopleRepository.create error: $error');
+      debugPrintStack(stackTrace: stackTrace);
       return null;
     }
   }
 
-  // ── Update ──────────────────────────────────────────────────────────────────
-
   Future<PersonModel?> update(PersonModel person) async {
     try {
+      final String? uid = _userId;
+      if (uid == null) return null;
+
       final List<Map<String, dynamic>> rows = await _supabase
           .from('people')
           .update(<String, dynamic>{
-            'name':     person.name,
+            'name': person.name,
             'nickname': person.nickname,
-            'phone':    person.phone,
-            'email':    person.email,
-            'notes':    person.notes,
+            'phone': person.phone,
+            'email': person.email,
+            'notes': person.notes,
           })
+          .eq('user_id', uid)
           .eq('id', person.id)
           .select();
 
       if (rows.isEmpty) return null;
       return PersonModel.fromMap(rows.first);
-    } catch (e) {
-      debugPrint('PeopleRepository.update error: $e');
+    } catch (error, stackTrace) {
+      debugPrint('PeopleRepository.update error: $error');
+      debugPrintStack(stackTrace: stackTrace);
       return null;
     }
   }
 
-  // ── Delete ──────────────────────────────────────────────────────────────────
-
   Future<bool> delete(String personId) async {
     try {
-      await _supabase.from('people').delete().eq('id', personId);
+      final String? uid = _userId;
+      if (uid == null) return false;
+
+      await _supabase
+          .from('people')
+          .delete()
+          .eq('user_id', uid)
+          .eq('id', personId);
+
       return true;
-    } catch (e) {
-      debugPrint('PeopleRepository.delete error: $e');
+    } catch (error, stackTrace) {
+      debugPrint('PeopleRepository.delete error: $error');
+      debugPrintStack(stackTrace: stackTrace);
       return false;
     }
   }
 
-  // ── Person summary (all linked records) ────────────────────────────────────
-
   Future<PersonSummary> fetchSummary(String personId) async {
-    final List<Map<String, dynamic>> assignedBills = await _safe(
-      () => _supabase
+    final String? uid = _userId;
+    if (uid == null || personId.trim().isEmpty) {
+      return PersonSummary.empty;
+    }
+
+    final List<Map<String, dynamic>> assignedBills = await _safeRows(
+      label: 'assignedBills',
+      query: () => _supabase
           .from('bills')
-          .select('id, name, amount, due_date, status')
+          .select(_billSelect)
+          .eq('user_id', uid)
           .eq('assigned_person_id', personId)
-          .order('due_date', ascending: false)
-          .limit(20),
+          .order('created_at', ascending: false),
     );
 
-    final List<Map<String, dynamic>> legacyPaidBills = await _safe(
-      () => _supabase
+    final List<Map<String, dynamic>> paidBillsBySinglePayer = await _safeRows(
+      label: 'paidBillsBySinglePayer',
+      query: () => _supabase
           .from('bills')
-          .select('id, name, amount, due_date, status')
+          .select(_billSelect)
+          .eq('user_id', uid)
+          .eq('status', 'paid')
           .eq('paid_by_person_id', personId)
-          .order('due_date', ascending: false)
-          .limit(20),
+          .order('paid_on', ascending: false),
     );
-    final List<Map<String, dynamic>> multiplePayerPaidBills = await _safe(
-      () => _supabase
+
+    final List<Map<String, dynamic>> paidBillsByMultiplePayers =
+        await _safeRows(
+      label: 'paidBillsByMultiplePayers',
+      query: () => _supabase
           .from('bills')
-          .select('id, name, amount, due_date, status')
+          .select(_billSelect)
+          .eq('user_id', uid)
+          .eq('status', 'paid')
           .contains('paid_by_person_ids', <String>[personId])
-          .order('due_date', ascending: false)
-          .limit(20),
+          .order('paid_on', ascending: false),
     );
+
+    final List<Map<String, dynamic>> legacyPaidAssignedBills = assignedBills
+        .where((Map<String, dynamic> bill) {
+          final String status = _stringValue(bill['status']).toLowerCase();
+          final String paidBy = _stringValue(bill['paid_by_person_id']);
+          return status == 'paid' && paidBy.isEmpty;
+        })
+        .map(Map<String, dynamic>.from)
+        .toList();
+
     final List<Map<String, dynamic>> paidBills = _mergeRowsById(
-      legacyPaidBills,
-      multiplePayerPaidBills,
-    );
+      <List<Map<String, dynamic>>>[
+        paidBillsBySinglePayer,
+        paidBillsByMultiplePayers,
+        legacyPaidAssignedBills,
+      ],
+    )..sort(
+        (Map<String, dynamic> a, Map<String, dynamic> b) =>
+            _compareDateDesc(a, b, <String>['paid_on', 'created_at']),
+      );
 
-    final List<Map<String, dynamic>> reminders = await _safe(
-      () => _supabase
+    final List<Map<String, dynamic>> reminders = await _safeRows(
+      label: 'reminders',
+      query: () => _supabase
           .from('reminders')
-          .select('id, title, message, remind_at, status')
+          .select(_reminderSelect)
+          .eq('user_id', uid)
           .eq('person_id', personId)
-          .order('remind_at', ascending: false)
-          .limit(20),
+          .order('remind_at', ascending: false),
     );
 
-    final List<Map<String, dynamic>> recentActivity = await _safe(
-      () => _supabase
+    final List<Map<String, dynamic>> recentActivity = await _safeRows(
+      label: 'recentActivity',
+      query: () => _supabase
           .from('activity_logs')
-          .select('id, action, description, created_at')
+          .select(_activitySelect)
+          .eq('user_id', uid)
           .eq('person_id', personId)
-          .order('created_at', ascending: false)
-          .limit(20),
+          .order('created_at', ascending: false),
     );
 
-    final List<Map<String, dynamic>> attachments = await _safe(
-      () => _supabase
+    final List<Map<String, dynamic>> directAttachments = await _safeRows(
+      label: 'directAttachments',
+      query: () => _supabase
           .from('attachments')
-          .select('id, file_name, file_url, created_at')
+          .select(_attachmentSelect)
+          .eq('user_id', uid)
           .eq('uploaded_by_person_id', personId)
-          .order('created_at', ascending: false)
-          .limit(20),
+          .order('created_at', ascending: false),
     );
+
+    final Set<String> linkedBillIds = <String>{
+      ...assignedBills.map((Map<String, dynamic> bill) => bill['id'].toString()),
+      ...paidBills.map((Map<String, dynamic> bill) => bill['id'].toString()),
+    };
+
+    final List<Map<String, dynamic>> allBillAttachments = await _safeRows(
+      label: 'allBillAttachments',
+      query: () => _supabase
+          .from('attachments')
+          .select(_attachmentSelect)
+          .eq('user_id', uid)
+          .eq('related_type', 'bill')
+          .order('created_at', ascending: false),
+    );
+
+    final List<Map<String, dynamic>> fallbackAttachments = allBillAttachments
+        .where((Map<String, dynamic> attachment) {
+          final String uploadedBy =
+              _stringValue(attachment['uploaded_by_person_id']);
+          final String relatedId = _stringValue(attachment['related_id']);
+
+          return uploadedBy.isEmpty && linkedBillIds.contains(relatedId);
+        })
+        .map(Map<String, dynamic>.from)
+        .toList();
+
+    final List<Map<String, dynamic>> attachments = _mergeRowsById(
+      <List<Map<String, dynamic>>>[
+        directAttachments,
+        fallbackAttachments,
+      ],
+    )..sort(
+        (Map<String, dynamic> a, Map<String, dynamic> b) =>
+            _compareDateDesc(a, b, <String>['created_at']),
+      );
 
     return PersonSummary(
       assignedBillsCount: assignedBills.length,
-      paidBillsCount:     paidBills.length,
-      remindersCount:     reminders.length,
-      activityCount:      recentActivity.length,
-      attachmentsCount:   attachments.length,
-      assignedBills:      assignedBills,
-      paidBills:          paidBills,
-      reminders:          reminders,
-      recentActivity:     recentActivity,
-      attachments:        attachments,
+      paidBillsCount: paidBills.length,
+      remindersCount: reminders.length,
+      activityCount: recentActivity.length,
+      attachmentsCount: attachments.length,
+      assignedBills: assignedBills,
+      paidBills: paidBills,
+      reminders: reminders,
+      recentActivity: recentActivity,
+      attachments: attachments,
     );
   }
 
-  // ── Safe query helper ───────────────────────────────────────────────────────
-
-  Future<List<Map<String, dynamic>>> _safe(
-    Future<dynamic> Function() query,
-  ) async {
+  Future<List<Map<String, dynamic>>> _safeRows({
+    required String label,
+    required Future<dynamic> Function() query,
+  }) async {
     try {
       final dynamic result = await query();
+
       if (result is List) {
-        return result.cast<Map<String, dynamic>>();
+        return result
+            .whereType<Map>()
+            .map((Map<dynamic, dynamic> row) => Map<String, dynamic>.from(row))
+            .toList();
       }
+
       return <Map<String, dynamic>>[];
-    } catch (e) {
-      // Gracefully return empty — missing columns/tables won't crash the screen
-      debugPrint('PeopleRepository._safe query error: $e');
+    } catch (error, stackTrace) {
+      debugPrint('PeopleRepository.$label query error: $error');
+      debugPrintStack(stackTrace: stackTrace);
       return <Map<String, dynamic>>[];
     }
   }
 
   List<Map<String, dynamic>> _mergeRowsById(
-    List<Map<String, dynamic>> first,
-    List<Map<String, dynamic>> second,
+    List<List<Map<String, dynamic>>> groups,
   ) {
     final Map<String, Map<String, dynamic>> rowsById =
         <String, Map<String, dynamic>>{};
 
-    for (final Map<String, dynamic> row in <Map<String, dynamic>>[
-      ...first,
-      ...second,
-    ]) {
-      rowsById[row['id'].toString()] = row;
+    for (final List<Map<String, dynamic>> group in groups) {
+      for (final Map<String, dynamic> row in group) {
+        final String id = _stringValue(row['id']);
+        if (id.isNotEmpty) {
+          rowsById[id] = row;
+        }
+      }
     }
 
     return rowsById.values.toList();
+  }
+
+  int _compareDateDesc(
+    Map<String, dynamic> a,
+    Map<String, dynamic> b,
+    List<String> keys,
+  ) {
+    final DateTime? aDate = _firstDate(a, keys);
+    final DateTime? bDate = _firstDate(b, keys);
+
+    if (aDate == null && bDate == null) return 0;
+    if (aDate == null) return 1;
+    if (bDate == null) return -1;
+
+    return bDate.compareTo(aDate);
+  }
+
+  DateTime? _firstDate(Map<String, dynamic> row, List<String> keys) {
+    for (final String key in keys) {
+      final DateTime? date = _tryParseDate(row[key]);
+      if (date != null) return date;
+    }
+
+    return null;
+  }
+
+  DateTime? _tryParseDate(dynamic value) {
+    if (value == null) return null;
+
+    try {
+      return DateTime.parse(value.toString()).toLocal();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _stringValue(dynamic value) {
+    if (value == null) return '';
+    final String text = value.toString().trim();
+    if (text.toLowerCase() == 'null') return '';
+    return text;
   }
 }
