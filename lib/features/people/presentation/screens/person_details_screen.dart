@@ -201,12 +201,18 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen> {
           IconButton(
             icon: const Icon(Icons.add_alert_outlined),
             tooltip: 'Add reminder',
-            onPressed: () => showReminderFormSheet(
-              context,
-              targetType:   'person',
-              personId:     person.id,
-              prefillTitle: '${person.displayName} responsibility',
-            ),
+            onPressed: () async {
+              final dynamic result = await showReminderFormSheet(
+                context,
+                targetType:   'person',
+                personId:     person.id,
+                prefillTitle: '${person.displayName} responsibility',
+              );
+              // Reload summary so the Reminders count chip updates immediately.
+              if (result != null && mounted) {
+                _load();
+              }
+            },
           ),
         ],
       ),

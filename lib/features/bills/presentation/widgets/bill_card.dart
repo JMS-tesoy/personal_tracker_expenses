@@ -10,14 +10,12 @@ class BillCard extends StatelessWidget {
     required this.onOpen,
     required this.onMarkPaid,
     required this.onMarkUnpaid,
-    required this.onDelete,
   });
 
   final BillModel bill;
   final VoidCallback onOpen;
   final VoidCallback onMarkPaid;
   final VoidCallback onMarkUnpaid;
-  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -161,25 +159,6 @@ class BillCard extends StatelessWidget {
                         label: const Text('Mark Paid'),
                         style: FilledButton.styleFrom(
                           visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    OutlinedButton.icon(
-                      onPressed: onDelete,
-                      icon: Icon(
-                        Icons.delete_outline,
-                        size: 16,
-                        color: colorScheme.error,
-                      ),
-                      label: Text(
-                        'Delete',
-                        style: TextStyle(color: colorScheme.error),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        side: BorderSide(
-                          color: colorScheme.error.withValues(alpha: 0.50),
                         ),
                       ),
                     ),

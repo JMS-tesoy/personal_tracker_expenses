@@ -89,13 +89,19 @@ class ReminderModel {
     String? status,
     int? notificationId,
     DateTime? remindAt,
+    String? targetType,
+    String? targetId,
+    // Use a sentinel so callers can explicitly clear personId to null.
+    Object? personId = _kKeep,
   }) {
     return ReminderModel(
       id: id,
       userId: userId,
-      targetType: targetType,
-      targetId: targetId,
-      personId: personId,
+      targetType: targetType ?? this.targetType,
+      targetId: targetId ?? this.targetId,
+      personId: personId == _kKeep
+          ? this.personId
+          : personId as String?,
       title: title,
       message: message,
       dueAt: dueAt,
@@ -108,3 +114,6 @@ class ReminderModel {
     );
   }
 }
+
+// Sentinel object used by copyWith to distinguish "not provided" from null.
+const Object _kKeep = Object();

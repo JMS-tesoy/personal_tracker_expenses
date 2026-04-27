@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/auth/current_user.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/floating_action_surface.dart';
 import '../../../activity/presentation/screens/activity_timeline_screen.dart';
 import '../../../loans/domain/loan.dart';
 import '../../../loans/presentation/screens/loan_details_screen.dart';
@@ -408,10 +409,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               // ── Activity Timeline button ─────────────────────────────
-              IconButton(
-                onPressed: openActivityTimeline,
-                icon: const Icon(Icons.history),
-                tooltip: 'Activity Timeline',
+              Tooltip(
+                message: 'Activity Timeline',
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: FloatingActionSurface(
+                    onTap: openActivityTimeline,
+                    minHeight: 44,
+                    padding: EdgeInsets.zero,
+                    child: Icon(
+                      Icons.history,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ),
               ),
               IconButton(
                 onPressed: () {

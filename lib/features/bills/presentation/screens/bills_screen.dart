@@ -257,51 +257,6 @@ class _BillsScreenState extends State<BillsScreen>
     }
   }
 
-  Future<void> _confirmDelete(BillModel bill) async {
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Delete Bill'),
-        content: Text('Delete "${bill.name}"? This cannot be undone.'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      final String userId = requireCurrentUserId();
-      await supabase
-          .from('bills')
-          .delete()
-          .eq('id', bill.id)
-          .eq('user_id', userId);
-
-      await ActivityLogRepository.instance.createLog(
-        targetType: 'bill',
-        action: 'deleted',
-        title: 'Bill deleted',
-        targetId: bill.id,
-        personId: bill.assignedPersonId,
-        description: '${bill.name} was deleted.',
-        metadata: <String, dynamic>{'bill_name': bill.name},
-      );
-    } catch (_) {
-      _showMessage('Failed to delete bill.');
-    }
-  }
 
   Future<void> _updateBillWithMultiplePayerFallback({
     required String billId,
@@ -404,7 +359,6 @@ class _BillsScreenState extends State<BillsScreen>
             onOpen: () => setState(() => _selectedBill = bill),
             onMarkPaid: () => _markPaid(bill),
             onMarkUnpaid: () => _markUnpaid(bill),
-            onDelete: () => _confirmDelete(bill),
           ),
         ),
       ],
