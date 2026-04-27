@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/auth/current_user.dart';
+import '../../../core/services/device_audit_service.dart';
 import '../../activity/data/repositories/activity_log_repository.dart';
 import '../domain/attachment.dart';
 
@@ -31,6 +32,9 @@ class AttachmentService {
     if (safeBillId.isEmpty) {
       throw Exception('Missing bill id.');
     }
+
+    final String? uploadedByDeviceId =
+        await DeviceAuditService.instance.registerCurrentDevice();
 
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -72,6 +76,8 @@ class AttachmentService {
 
     debugPrint('AttachmentService: bucket=$_bucket');
     debugPrint('AttachmentService: storagePath=$storagePath');
+    debugPrint('AttachmentService: uploadedByPersonId=$uploadedByPersonId');
+    debugPrint('AttachmentService: uploadedByDeviceId=$uploadedByDeviceId');
     debugPrint('AttachmentService: mimeType=$mimeType');
     debugPrint('AttachmentService: size=$size');
 
@@ -88,7 +94,7 @@ class AttachmentService {
       debugPrint('AttachmentService: StorageException');
       debugPrint('message=${error.message}');
       debugPrint('statusCode=${error.statusCode}');
-      debugPrint('error=${error.error}');
+      debugPrint('error=$error');
       debugPrintStack(stackTrace: stackTrace);
       rethrow;
     } catch (error, stackTrace) {
@@ -114,9 +120,12 @@ class AttachmentService {
             'file_url': fileUrl,
             'file_name': rawName,
             'uploaded_by_person_id': uploadedByPersonId,
+            'uploaded_by_device_id': uploadedByDeviceId,
             'notes': null,
           })
-          .select();
+          .select(
+            '*, user_devices:uploaded_by_device_id(device_name, platform, os_version, app_version)',
+          );
     } on PostgrestException catch (error, stackTrace) {
       debugPrint('AttachmentService: PostgrestException during DB insert');
       debugPrint('message=${error.message}');
@@ -150,6 +159,7 @@ class AttachmentService {
         'file_url': fileUrl,
         'bill_id': safeBillId,
         'storage_path': storagePath,
+        'uploaded_by_device_id': uploadedByDeviceId,
       },
     );
 
@@ -162,19 +172,27 @@ class AttachmentService {
 
     if (safeBillId.isEmpty) return <AttachmentModel>[];
 
-    final List<dynamic> response = await _supabase
-        .from('attachments')
-        .select()
-        .eq('user_id', userId)
-        .eq('related_type', 'bill')
-        .eq('related_id', safeBillId)
-        .order('created_at', ascending: false);
+    try {
+      final List<dynamic> response = await _supabase
+          .from('attachments')
+          .select(
+            '*, user_devices:uploaded_by_device_id(device_name, platform, os_version, app_version)',
+          )
+          .eq('user_id', userId)
+          .eq('related_type', 'bill')
+          .eq('related_id', safeBillId)
+          .order('created_at', ascending: false);
 
-    return response
-        .map(
-          (dynamic e) => AttachmentModel.fromMap(e as Map<String, dynamic>),
-        )
-        .toList();
+      return response
+          .map(
+            (dynamic e) => AttachmentModel.fromMap(e as Map<String, dynamic>),
+          )
+          .toList();
+    } catch (error, stackTrace) {
+      debugPrint('AttachmentService.fetchForBill error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   Future<void> delete(AttachmentModel attachment) async {
@@ -209,6 +227,7 @@ class AttachmentService {
         'attachment_id': attachment.id,
         'file_name': attachment.fileName ?? '',
         'file_url': attachment.fileUrl,
+        'uploaded_by_device_id': attachment.uploadedByDeviceId,
       },
     );
   }
@@ -263,7 +282,9 @@ class AttachmentService {
   }
 
   String? _storagePathFromPublicUrl(String fileUrl) {
-    final Uri uri = Uri.tryParse(fileUrl) ?? Uri();
+    final Uri? uri = Uri.tryParse(fileUrl);
+    if (uri == null) return null;
+
     final List<String> segments = uri.pathSegments;
 
     final int bucketIndex = segments.indexOf(_bucket);

@@ -33,14 +33,18 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
 
   Future<void> _loadAttachments() async {
     setState(() => _loadingAttachments = true);
+
     try {
       final List<AttachmentModel> result = await _service.fetchForBill(
         widget.bill.id,
       );
+
       if (!mounted) return;
+
       setState(() => _attachments = result);
     } catch (_) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to load attachments.')),
       );
@@ -51,16 +55,15 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
 
   Future<void> _handleProofUploaded(AttachmentModel attachment) async {
     await _loadAttachments();
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Payment proof uploaded')));
   }
 
   Widget _buildUploadBox(BillModel bill) {
+    final String? proofOwnerPersonId =
+        bill.paidByPersonId ?? bill.assignedPersonId;
+
     return ProofUploadBox(
       billId: bill.id,
-      uploadedByPersonId: bill.paidByPersonId,
+      uploadedByPersonId: proofOwnerPersonId,
       onUploaded: _handleProofUploaded,
     );
   }
@@ -106,7 +109,9 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
                 prefillTitle: '${bill.name} bill',
                 prefillDueAt: _nextBillDueDate(bill),
               );
+
               if (result == null) return;
+
               await ActivityLogRepository.instance.createLog(
                 targetType: result.targetType,
                 action: 'reminder_created',
@@ -126,7 +131,6 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         children: <Widget>[
-          // ── Bill Info ─────────────────────────────────────────────────
           _SectionHeader(title: 'Bill Details'),
           const SizedBox(height: 12),
           _DetailRow(label: 'Name', value: bill.name),
@@ -151,13 +155,9 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
             _DetailRow(label: 'Paid on', value: _formatDate(bill.paidOn!)),
           _DetailRow(label: 'Notes', value: _textOrDash(bill.notes)),
           _DetailRow(label: 'Remarks', value: _textOrDash(bill.remarks)),
-
           const SizedBox(height: 28),
-
-          // ── Payment Proof ─────────────────────────────────────────────
           _SectionHeader(title: 'Payment Proof'),
           const SizedBox(height: 12),
-
           if (_loadingAttachments)
             const Center(child: CircularProgressIndicator())
           else if (_attachments.isEmpty)
@@ -197,8 +197,6 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
   }
 }
 
-// ── Proof tile ────────────────────────────────────────────────────────────────
-
 class _ProofTile extends StatelessWidget {
   const _ProofTile({required this.attachment});
 
@@ -212,6 +210,10 @@ class _ProofTile extends StatelessWidget {
         fileUrl.isNotEmpty && fileUrl.toLowerCase() != 'null';
     final String? fileName = attachment.fileName?.trim();
     final String? notes = attachment.notes?.trim();
+    final String? deviceName = attachment.deviceName?.trim();
+    final String? devicePlatform = attachment.devicePlatform?.trim();
+    final String? deviceOsVersion = attachment.deviceOsVersion?.trim();
+    final String? deviceAppVersion = attachment.deviceAppVersion?.trim();
 
     return Card(
       elevation: 0,
@@ -240,6 +242,7 @@ class _ProofTile extends StatelessWidget {
                       ImageChunkEvent? loadingProgress,
                     ) {
                       if (loadingProgress == null) return child;
+
                       return SizedBox(
                         height: 200,
                         child: Center(
@@ -264,7 +267,6 @@ class _ProofTile extends StatelessWidget {
                 ),
               ),
             ),
-
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             child: Column(
@@ -291,6 +293,53 @@ class _ProofTile extends StatelessWidget {
                     color: colors.onSurfaceVariant,
                   ),
                 ),
+                if (deviceName != null && deviceName.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Icon(
+                        Icons.phone_android_outlined,
+                        size: 14,
+                        color: colors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          devicePlatform != null && devicePlatform.isNotEmpty
+                              ? 'Device: $deviceName • $devicePlatform'
+                              : 'Device: $deviceName',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                if (deviceOsVersion != null &&
+                    deviceOsVersion.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 2),
+                  Text(
+                    deviceOsVersion,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                if (deviceAppVersion != null &&
+                    deviceAppVersion.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 2),
+                  Text(
+                    'App version: $deviceAppVersion',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
                 if (notes != null && notes.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 8),
                   Text(notes, style: const TextStyle(fontSize: 13)),
@@ -347,8 +396,6 @@ class _EmptyProofBox extends StatelessWidget {
     );
   }
 }
-
-// ── Reusable detail widgets ───────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title});
