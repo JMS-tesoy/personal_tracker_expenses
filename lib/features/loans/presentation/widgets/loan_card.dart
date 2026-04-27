@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/floating_action_surface.dart';
 import '../../domain/loan.dart';
 
 class LoanCard extends StatelessWidget {
@@ -146,12 +147,34 @@ class LoanCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              _LoanMetric(
-                label: 'Next payment',
-                value: _nextPaymentText,
-                valueColor: loan.isPaid
-                    ? colorScheme.onSurfaceVariant
-                    : colorScheme.primary,
+              FloatingActionSurface(
+                onTap: onTap,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(
+                      'Next payment',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _nextPaymentText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: loan.isPaid
+                            ? colorScheme.onSurfaceVariant
+                            : colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/auth/current_user.dart';
+import '../../../activity/data/repositories/activity_log_repository.dart';
 import '../../domain/person.dart';
 import '../widgets/person_card.dart';
 import 'add_person_screen.dart';
+import 'person_details_screen.dart'; // ← ADDED
 
 class PeopleScreen extends StatefulWidget {
   const PeopleScreen({super.key});
@@ -121,12 +123,12 @@ class _PeopleScreenState extends State<PeopleScreen> {
   }
 
   void _replaceGroups(List<_PeopleGroup> groups, {int? selectedIndex}) {
-    final List<_PeopleGroup> nextGroups = groups.isEmpty
-        ? _defaultGroups()
-        : groups;
-    final int nextIndex = (selectedIndex ?? _selectedGroupIndex)
-        .clamp(0, nextGroups.length - 1)
-        .toInt();
+    final List<_PeopleGroup> nextGroups =
+        groups.isEmpty ? _defaultGroups() : groups;
+    final int nextIndex =
+        (selectedIndex ?? _selectedGroupIndex)
+            .clamp(0, nextGroups.length - 1)
+            .toInt();
 
     _groups = nextGroups;
     _selectedGroupIndex = nextIndex;
@@ -167,6 +169,16 @@ class _PeopleScreenState extends State<PeopleScreen> {
     if (result == true) _loadPeople();
   }
 
+  // ── ADDED: open PersonDetailsScreen ────────────────────────────────────────
+  void _openPersonDetails(Person person) {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => PersonDetailsScreen(person: person),
+      ),
+    );
+  }
+
   Future<void> _createGroup() async {
     final bool groupsReady = await _ensureGroupsTableReady();
     if (!groupsReady) return;
@@ -187,12 +199,20 @@ class _PeopleScreenState extends State<PeopleScreen> {
           .select('id, name')
           .single();
       final _PeopleGroup group = _PeopleGroup.fromMap(row);
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'people_group',
+        action: 'created',
+        title: 'Group created',
+        targetId: group.id.isEmpty ? null : group.id,
+        description: '${group.name} group was created.',
+        metadata: <String, dynamic>{'group_name': group.name},
+      );
       if (!mounted) return;
       setState(() {
-        _replaceGroups(<_PeopleGroup>[
-          ..._groups,
-          group,
-        ], selectedIndex: _groups.length);
+        _replaceGroups(
+          <_PeopleGroup>[..._groups, group],
+          selectedIndex: _groups.length,
+        );
       });
     } catch (_) {
       if (!mounted) return;
@@ -238,6 +258,17 @@ class _PeopleScreenState extends State<PeopleScreen> {
           .update(<String, dynamic>{'role': newName})
           .eq('user_id', userId)
           .eq('role', group.name);
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'people_group',
+        action: 'updated',
+        title: 'Group renamed',
+        targetId: group.id.isEmpty ? null : group.id,
+        description: '${group.name} group was renamed to $newName.',
+        metadata: <String, dynamic>{
+          'old_name': group.name,
+          'new_name': newName,
+        },
+      );
       await _loadPeople();
     } catch (_) {
       if (!mounted) return;
@@ -295,6 +326,14 @@ class _PeopleScreenState extends State<PeopleScreen> {
             .eq('id', group.id)
             .eq('user_id', userId);
       }
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'people_group',
+        action: 'deleted',
+        title: 'Group deleted',
+        targetId: group.id.isEmpty ? null : group.id,
+        description: '${group.name} group was deleted.',
+        metadata: <String, dynamic>{'group_name': group.name},
+      );
       await _loadPeople();
     } catch (_) {
       if (!mounted) return;
@@ -306,12 +345,11 @@ class _PeopleScreenState extends State<PeopleScreen> {
     final _PersonDeleteLinks links = await _loadPersonDeleteLinks(person);
     if (!mounted) return;
 
-    final String pin = ((DateTime.now().millisecondsSinceEpoch % 9000) + 1000)
-        .toString();
+    final String pin =
+        ((DateTime.now().millisecondsSinceEpoch % 9000) + 1000).toString();
     final String? role = person.role?.trim();
-    final String displayRole = role == null || role.isEmpty
-        ? 'Ungrouped'
-        : role;
+    final String displayRole =
+        role == null || role.isEmpty ? 'Ungrouped' : role;
     final TextEditingController pinController = TextEditingController();
     String typedPin = '';
 
@@ -414,6 +452,18 @@ class _PeopleScreenState extends State<PeopleScreen> {
           .delete()
           .eq('id', person.id)
           .eq('user_id', userId);
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'person',
+        action: 'deleted',
+        title: 'Person deleted',
+        targetId: person.id,
+        personId: person.id,
+        description: '${person.name} was deleted.',
+        metadata: <String, dynamic>{
+          'person_name': person.name,
+          if (person.role != null) 'role': person.role,
+        },
+      );
       await _loadPeople();
     } catch (_) {
       if (!mounted) return;
@@ -569,7 +619,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
 
   _PeopleGroup? get _selectedGroup {
     if (_groups.isEmpty) return null;
-    final int index = _selectedGroupIndex.clamp(0, _groups.length - 1).toInt();
+    final int index =
+        _selectedGroupIndex.clamp(0, _groups.length - 1).toInt();
     return _groups[index];
   }
 
@@ -580,58 +631,24 @@ class _PeopleScreenState extends State<PeopleScreen> {
     try {
       final String userId = requireCurrentUserId();
       await _supabase.from('people').insert(<Map<String, dynamic>>[
-        <String, dynamic>{
-          'user_id': userId,
-          'name': 'Juan Dela Cruz',
-          'role': 'Family',
-        },
-        <String, dynamic>{
-          'user_id': userId,
-          'name': 'Maria Santos',
-          'role': 'Family',
-        },
-        <String, dynamic>{
-          'user_id': userId,
-          'name': 'Jose Reyes',
-          'role': 'Friend',
-        },
-        <String, dynamic>{
-          'user_id': userId,
-          'name': 'Ana Garcia',
-          'role': 'Friend',
-        },
-        <String, dynamic>{
-          'user_id': userId,
-          'name': 'Pedro Ramos',
-          'role': 'Coworker',
-        },
-        <String, dynamic>{
-          'user_id': userId,
-          'name': 'Liza Cruz',
-          'role': 'Coworker',
-        },
-        <String, dynamic>{
-          'user_id': userId,
-          'name': 'Carlo Mendoza',
-          'role': 'Family',
-        },
-        <String, dynamic>{
-          'user_id': userId,
-          'name': 'Nina Lopez',
-          'role': 'Family',
-        },
-        <String, dynamic>{
-          'user_id': userId,
-          'name': 'Mark Flores',
-          'role': 'Coworker',
-        },
-        <String, dynamic>{
-          'user_id': userId,
-          'name': 'Grace Aquino',
-          'role': 'Coworker',
-        },
+        <String, dynamic>{'user_id': userId, 'name': 'Juan Dela Cruz', 'role': 'Family'},
+        <String, dynamic>{'user_id': userId, 'name': 'Maria Santos', 'role': 'Family'},
+        <String, dynamic>{'user_id': userId, 'name': 'Jose Reyes', 'role': 'Friend'},
+        <String, dynamic>{'user_id': userId, 'name': 'Ana Garcia', 'role': 'Friend'},
+        <String, dynamic>{'user_id': userId, 'name': 'Pedro Ramos', 'role': 'Coworker'},
+        <String, dynamic>{'user_id': userId, 'name': 'Liza Cruz', 'role': 'Coworker'},
+        <String, dynamic>{'user_id': userId, 'name': 'Carlo Mendoza', 'role': 'Family'},
+        <String, dynamic>{'user_id': userId, 'name': 'Nina Lopez', 'role': 'Family'},
+        <String, dynamic>{'user_id': userId, 'name': 'Mark Flores', 'role': 'Coworker'},
+        <String, dynamic>{'user_id': userId, 'name': 'Grace Aquino', 'role': 'Coworker'},
       ]);
-
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'person',
+        action: 'created',
+        title: 'Sample people added',
+        description: '10 sample people were added.',
+        metadata: <String, dynamic>{'count': 10},
+      );
       if (!mounted) return;
       _showMessage('10 people added to Supabase.');
       await _loadPeople();
@@ -712,6 +729,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
           final Person person = people[index];
           return PersonCard(
             person: person,
+            onTap: () => _openPersonDetails(person), // ← ADDED
             onLongPress: () => _confirmDeletePerson(person),
           );
         },
@@ -721,9 +739,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final int selectedIndex = _selectedGroupIndex
-        .clamp(0, _groups.length - 1)
-        .toInt();
+    final int selectedIndex =
+        _selectedGroupIndex.clamp(0, _groups.length - 1).toInt();
 
     return Scaffold(
       appBar: AppBar(
@@ -748,15 +765,15 @@ class _PeopleScreenState extends State<PeopleScreen> {
             },
             itemBuilder: (BuildContext context) =>
                 <PopupMenuEntry<_GroupAction>>[
-                  const PopupMenuItem<_GroupAction>(
-                    value: _GroupAction.rename,
-                    child: Text('Rename group'),
-                  ),
-                  const PopupMenuItem<_GroupAction>(
-                    value: _GroupAction.delete,
-                    child: Text('Delete group'),
-                  ),
-                ],
+              const PopupMenuItem<_GroupAction>(
+                value: _GroupAction.rename,
+                child: Text('Rename group'),
+              ),
+              const PopupMenuItem<_GroupAction>(
+                value: _GroupAction.delete,
+                child: Text('Delete group'),
+              ),
+            ],
           ),
         ],
       ),
@@ -768,7 +785,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
           ? const Center(child: CircularProgressIndicator())
           : DefaultTabController(
               key: ValueKey<String>(
-                _groups.map((_PeopleGroup group) => group.name).join('|'),
+                _groups.map((_PeopleGroup g) => g.name).join('|'),
               ),
               length: _groups.length,
               initialIndex: selectedIndex,
@@ -802,7 +819,10 @@ class _PeopleGroup {
   final String name;
 
   factory _PeopleGroup.fromMap(Map<String, dynamic> map) {
-    return _PeopleGroup(id: map['id'].toString(), name: map['name'].toString());
+    return _PeopleGroup(
+      id:   map['id'].toString(),
+      name: map['name'].toString(),
+    );
   }
 }
 
@@ -821,17 +841,15 @@ class _PersonDeleteLinks {
   final int loanPayments;
   final int uploadedProofs;
 
-  int get total {
-    return assignedBills +
-        paidBills +
-        reminders +
-        loanPayments +
-        uploadedProofs;
-  }
+  int get total =>
+      assignedBills + paidBills + reminders + loanPayments + uploadedProofs;
 }
 
 class _DeleteResponsibilityRow extends StatelessWidget {
-  const _DeleteResponsibilityRow({required this.label, required this.count});
+  const _DeleteResponsibilityRow({
+    required this.label,
+    required this.count,
+  });
 
   final String label;
   final int count;

@@ -38,7 +38,7 @@ class LocalNotificationService {
       iOS: iosSettings,
     );
 
-    await _plugin.initialize(settings);
+    await _plugin.initialize(settings: settings);
     _initialized = true;
   }
 
@@ -135,11 +135,11 @@ class LocalNotificationService {
       );
 
       await _plugin.zonedSchedule(
-        id,
-        title,
-        body,
-        tzRemindAt,
-        details,
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: tzRemindAt,
+        notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
 
@@ -155,7 +155,7 @@ class LocalNotificationService {
   Future<void> cancelReminder(int id) async {
     if (!_initialized) await initialize();
     try {
-      await _plugin.cancel(id);
+      await _plugin.cancel(id: id);
     } catch (e) {
       debugPrint('LocalNotificationService.cancelReminder error: $e');
     }

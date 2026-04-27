@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/auth/current_user.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../activity/data/repositories/activity_log_repository.dart';
 import '../../domain/transaction.dart';
 import 'add_transaction_screen.dart';
 
@@ -117,6 +118,19 @@ class _TransactionsScreenState extends State<TransactionsScreen>
           .update(<String, dynamic>{'is_archived': true})
           .eq('id', transaction.id)
           .eq('user_id', requireCurrentUserId());
+
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'transaction',
+        action: 'archived',
+        title: 'Transaction archived',
+        targetId: transaction.id,
+        description: '${transaction.categoryName} transaction was archived.',
+        metadata: <String, dynamic>{
+          'amount': transaction.amount,
+          'type': transaction.type,
+          'category_name': transaction.categoryName,
+        },
+      );
 
       await fetchTransactions();
     } catch (_) {

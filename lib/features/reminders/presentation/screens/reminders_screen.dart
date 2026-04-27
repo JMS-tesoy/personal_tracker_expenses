@@ -37,10 +37,10 @@ class _RemindersScreenState extends State<RemindersScreen>
   Future<void> _load() async {
     setState(() => _isLoading = true);
 
-    final List<ReminderModel> active = await ReminderRepository.instance
-        .getActiveReminders();
-    final List<ReminderModel> history = await ReminderRepository.instance
-        .getHistoryReminders();
+    final List<ReminderModel> active =
+        await ReminderRepository.instance.getActiveReminders();
+    final List<ReminderModel> history =
+        await ReminderRepository.instance.getHistoryReminders();
 
     if (!mounted) return;
     setState(() {
@@ -74,7 +74,21 @@ class _RemindersScreenState extends State<RemindersScreen>
       context,
       existingReminder: r,
     );
-    if (result != null) _load();
+    if (result != null) {
+      await ActivityLogRepository.instance.createLog(
+        targetType: result.targetType,
+        action: 'updated',
+        title: 'Reminder updated',
+        targetId: result.targetId,
+        personId: result.personId,
+        description: '${result.title} was updated.',
+        metadata: <String, dynamic>{
+          'reminder_title': result.title,
+          'remind_at': result.remindAt.toIso8601String(),
+        },
+      );
+      _load();
+    }
   }
 
   Future<void> _markDone(ReminderModel r) async {
@@ -124,7 +138,18 @@ class _RemindersScreenState extends State<RemindersScreen>
       ),
     );
     if (confirmed != true || !mounted) return;
-    await ReminderRepository.instance.deleteReminder(r);
+    final bool deleted = await ReminderRepository.instance.deleteReminder(r);
+    if (deleted) {
+      await ActivityLogRepository.instance.createLog(
+        targetType: r.targetType,
+        action: 'deleted',
+        title: 'Reminder deleted',
+        targetId: r.targetId,
+        personId: r.personId,
+        description: '${r.title} was deleted.',
+        metadata: <String, dynamic>{'reminder_title': r.title},
+      );
+    }
     _load();
   }
 
@@ -170,8 +195,6 @@ class _RemindersScreenState extends State<RemindersScreen>
   }
 }
 
-// ── Private list widget ───────────────────────────────────────────────────────
-
 class _ReminderList extends StatelessWidget {
   const _ReminderList({
     required this.reminders,
@@ -208,7 +231,8 @@ class _ReminderList extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
         itemCount: reminders.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        separatorBuilder: (BuildContext context, int index) =>
+            const SizedBox(height: 10),
         itemBuilder: (BuildContext ctx, int i) {
           final ReminderModel r = reminders[i];
           return ReminderCard(

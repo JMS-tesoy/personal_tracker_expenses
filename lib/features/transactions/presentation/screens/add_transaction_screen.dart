@@ -6,6 +6,7 @@ import '../../../../core/auth/current_user.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../categories/domain/category.dart';
 import '../../../categories/presentation/screens/categories_screen.dart';
+import '../../../activity/data/repositories/activity_log_repository.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/section_header.dart';
@@ -144,6 +145,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           'category': selectedCategory.name,
         });
       }
+
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'transaction',
+        action: 'created',
+        title: 'Transaction added',
+        description: '${selectedCategory.name} $transactionType was added.',
+        metadata: <String, dynamic>{
+          'amount': amount,
+          'type': transactionType,
+          'category_name': selectedCategory.name,
+          'payment_method': paymentMethod,
+          'transaction_date': databaseDate(selectedDate),
+        },
+      );
 
       debugPrint('INSERT SUCCESS'); // DEBUG
 

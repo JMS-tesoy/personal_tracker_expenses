@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/auth/current_user.dart';
+import '../../../activity/data/repositories/activity_log_repository.dart';
 import '../widgets/person_form.dart';
 
 class AddPersonScreen extends StatefulWidget {
@@ -36,6 +37,16 @@ class _AddPersonScreenState extends State<AddPersonScreen> {
         'role': data.role,
         'avatar_url': data.avatarUrl,
       });
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'person',
+        action: 'created',
+        title: 'Person added',
+        description: '${data.name} was added.',
+        metadata: <String, dynamic>{
+          'person_name': data.name,
+          if (data.role != null) 'role': data.role,
+        },
+      );
 
       if (!mounted) return;
       Navigator.pop(context, true);

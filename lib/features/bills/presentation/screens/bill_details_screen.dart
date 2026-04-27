@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/utils/bill_due_date_helper.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../activity/data/repositories/activity_log_repository.dart';
 import '../../../attachments/data/attachment_service.dart';
 import '../../../attachments/domain/attachment.dart';
 import '../../../attachments/presentation/widgets/proof_upload_box.dart';
@@ -97,13 +98,28 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
           IconButton(
             icon: const Icon(Icons.add_alert_outlined),
             tooltip: 'Add reminder',
-            onPressed: () => showReminderFormSheet(
-              context,
-              targetType: 'bill',
-              targetId: bill.id,
-              prefillTitle: '${bill.name} bill',
-              prefillDueAt: _nextBillDueDate(bill),
-            ),
+            onPressed: () async {
+              final result = await showReminderFormSheet(
+                context,
+                targetType: 'bill',
+                targetId: bill.id,
+                prefillTitle: '${bill.name} bill',
+                prefillDueAt: _nextBillDueDate(bill),
+              );
+              if (result == null) return;
+              await ActivityLogRepository.instance.createLog(
+                targetType: result.targetType,
+                action: 'reminder_created',
+                title: 'Reminder created',
+                targetId: result.targetId,
+                personId: result.personId,
+                description: '${result.title} was scheduled.',
+                metadata: <String, dynamic>{
+                  'reminder_title': result.title,
+                  'remind_at': result.remindAt.toIso8601String(),
+                },
+              );
+            },
           ),
         ],
       ),
@@ -129,8 +145,8 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
           _DetailRow(label: 'Status', value: bill.displayStatus.toUpperCase()),
           if (bill.assignedPersonName != null)
             _DetailRow(label: 'Assigned to', value: bill.assignedPersonName!),
-          if (bill.paidByPersonName != null)
-            _DetailRow(label: 'Paid by', value: bill.paidByPersonName!),
+          if (bill.paidByDisplayName != null)
+            _DetailRow(label: 'Paid by', value: bill.paidByDisplayName!),
           if (bill.paidOn != null)
             _DetailRow(label: 'Paid on', value: _formatDate(bill.paidOn!)),
           _DetailRow(label: 'Notes', value: _textOrDash(bill.notes)),

@@ -10,6 +10,8 @@ class BillModel {
     this.assignedPersonName,
     this.paidByPersonId,
     this.paidByPersonName,
+    this.paidByPersonIds = const <String>[],
+    this.paidByPersonNames = const <String>[],
     this.paidOn,
     required this.paymentMethod,
     required this.status,
@@ -26,6 +28,8 @@ class BillModel {
   final String? assignedPersonName;
   final String? paidByPersonId;
   final String? paidByPersonName;
+  final List<String> paidByPersonIds;
+  final List<String> paidByPersonNames;
   final DateTime? paidOn;
   final String paymentMethod;
   final String status;
@@ -46,6 +50,11 @@ class BillModel {
 
   bool get isUnpaid => isActive && !isOverdue;
 
+  String? get paidByDisplayName {
+    if (paidByPersonNames.isNotEmpty) return paidByPersonNames.join(', ');
+    return paidByPersonName;
+  }
+
   String get displayStatus {
     if (isPaid) return 'paid';
     if (isOverdue) return 'overdue';
@@ -57,6 +66,8 @@ class BillModel {
     DateTime? paidOn,
     String? paidByPersonId,
     String? paidByPersonName,
+    List<String>? paidByPersonIds,
+    List<String>? paidByPersonNames,
     String? remarks,
   }) {
     return BillModel(
@@ -68,6 +79,8 @@ class BillModel {
       assignedPersonName: assignedPersonName,
       paidByPersonId: paidByPersonId ?? this.paidByPersonId,
       paidByPersonName: paidByPersonName ?? this.paidByPersonName,
+      paidByPersonIds: paidByPersonIds ?? this.paidByPersonIds,
+      paidByPersonNames: paidByPersonNames ?? this.paidByPersonNames,
       paidOn: paidOn ?? this.paidOn,
       paymentMethod: paymentMethod,
       status: status ?? this.status,
@@ -78,6 +91,13 @@ class BillModel {
   }
 
   factory BillModel.fromMap(Map<String, dynamic> map) {
+    final String? paidByPersonId = _emptyToNull(map['paid_by_person_id']);
+    final List<String> paidByPersonIds =
+        _parseStringList(map['paid_by_person_ids']);
+    final List<String> mergedPaidByPersonIds = paidByPersonIds.isNotEmpty
+        ? paidByPersonIds
+        : <String>[?paidByPersonId];
+
     return BillModel(
       id: map['id'].toString(),
       name: map['name'].toString(),
@@ -85,8 +105,10 @@ class BillModel {
       dueDay: _parseInt(map['due_day'], fallback: 1),
       assignedPersonId: _emptyToNull(map['assigned_person_id']),
       assignedPersonName: _emptyToNull(map['assigned_person_name']),
-      paidByPersonId: _emptyToNull(map['paid_by_person_id']),
+      paidByPersonId: paidByPersonId,
       paidByPersonName: _emptyToNull(map['paid_by_person_name']),
+      paidByPersonIds: mergedPaidByPersonIds,
+      paidByPersonNames: _parseStringList(map['paid_by_person_names']),
       paidOn: _parseDate(map['paid_on']),
       paymentMethod: map['payment_method']?.toString() ?? '',
       status: map['status']?.toString() ?? 'active',
@@ -118,5 +140,14 @@ class BillModel {
     final String? text = value?.toString().trim();
     if (text == null || text.isEmpty) return null;
     return text;
+  }
+
+  static List<String> _parseStringList(dynamic value) {
+    if (value is! List) return <String>[];
+
+    return value
+        .map((dynamic item) => item?.toString().trim() ?? '')
+        .where((String item) => item.isNotEmpty)
+        .toList();
   }
 }

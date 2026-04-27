@@ -13,7 +13,9 @@ import '../widgets/recent_transaction_tile.dart';
 import '../widgets/summary_card.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({super.key, this.onOpenActivity});
+
+  final VoidCallback? onOpenActivity;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -67,7 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .eq('user_id', userId)
           .order('next_due_date', ascending: true);
 
-      final parsedTransactions = transactionsData.map<_DashboardTransaction?>((\
+      final parsedTransactions = transactionsData.map<_DashboardTransaction?>((
         item,
       ) {
         final map = Map<String, dynamic>.from(item);
@@ -203,6 +205,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void openActivityTimeline() {
+    if (widget.onOpenActivity != null) {
+      widget.onOpenActivity!();
+      return;
+    }
+
     Navigator.push<void>(
       context,
       MaterialPageRoute<void>(

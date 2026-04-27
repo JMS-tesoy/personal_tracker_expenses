@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../features/activity/presentation/screens/activity_timeline_screen.dart';
 import '../features/bills/presentation/screens/bills_screen.dart';
 import '../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../features/loans/presentation/screens/loans_screen.dart';
@@ -15,15 +16,37 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  bool _showActivity = false;
 
-  final List<Widget> _screens = const <Widget>[
-    DashboardScreen(),
-    TransactionsScreen(),
-    BillsScreen(),
-    LoansScreen(),
-    PeopleScreen(),
-    RemindersScreen(),
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = <Widget>[
+      DashboardScreen(onOpenActivity: _openActivity),
+      const TransactionsScreen(),
+      const BillsScreen(),
+      const LoansScreen(),
+      const PeopleScreen(),
+      const RemindersScreen(),
+    ];
+  }
+
+  void _openActivity() {
+    setState(() => _showActivity = true);
+  }
+
+  void _closeActivity() {
+    setState(() => _showActivity = false);
+  }
+
+  void _selectTab(int index) {
+    setState(() {
+      _currentIndex = index;
+      _showActivity = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +54,9 @@ class _MainNavigationState extends State<MainNavigation> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: _screens[_currentIndex],
+      body: _showActivity
+          ? ActivityTimelineScreen(onBack: _closeActivity)
+          : _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: _currentIndex,
@@ -41,7 +66,7 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
         backgroundColor: const Color(0xFF252A31).withValues(alpha: 0.96),
         elevation: 0,
-        onTap: (int index) => setState(() => _currentIndex = index),
+        onTap: _selectTab,
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),

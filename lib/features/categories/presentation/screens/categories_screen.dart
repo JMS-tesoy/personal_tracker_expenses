@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/auth/current_user.dart';
+import '../../../activity/data/repositories/activity_log_repository.dart';
 import '../../domain/category.dart';
 import '../widgets/category_form_dialog.dart';
 
@@ -68,6 +69,16 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         'name': result.name,
         'type': result.type,
       });
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'category',
+        action: 'created',
+        title: 'Category added',
+        description: '${result.name} category was added.',
+        metadata: <String, dynamic>{
+          'category_name': result.name,
+          'category_type': result.type,
+        },
+      );
 
       await fetchCategories();
       showMessage('Category added.');
@@ -103,6 +114,19 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           .update({'name': result.name, 'type': result.type})
           .eq('id', category.id)
           .eq('user_id', userId);
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'category',
+        action: 'updated',
+        title: 'Category updated',
+        targetId: category.id,
+        description: '${category.name} was updated to ${result.name}.',
+        metadata: <String, dynamic>{
+          'old_name': category.name,
+          'new_name': result.name,
+          'old_type': category.type,
+          'new_type': result.type,
+        },
+      );
 
       await fetchCategories();
       showMessage('Category updated.');
@@ -141,6 +165,17 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           .delete()
           .eq('id', category.id)
           .eq('user_id', userId);
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'category',
+        action: 'deleted',
+        title: 'Category deleted',
+        targetId: category.id,
+        description: '${category.name} category was deleted.',
+        metadata: <String, dynamic>{
+          'category_name': category.name,
+          'category_type': category.type,
+        },
+      );
 
       await fetchCategories();
       showMessage('Category deleted.');

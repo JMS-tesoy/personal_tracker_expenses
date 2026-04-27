@@ -214,7 +214,7 @@ class ReminderRepository {
           .select()
           .eq('user_id', uid)
           .eq('status', status)
-          .order('remind_at');
+          .order('remind_at', ascending: true);
 
       return rows.map(ReminderModel.fromMap).toList();
     } catch (e) {

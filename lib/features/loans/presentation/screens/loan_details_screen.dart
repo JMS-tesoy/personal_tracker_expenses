@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/auth/current_user.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../activity/data/repositories/activity_log_repository.dart';
 import '../../../reminders/presentation/widgets/reminder_form_sheet.dart';
 import '../../domain/loan.dart';
 
@@ -98,6 +99,17 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
           .update(<String, dynamic>{'status': 'paid', 'remaining_balance': 0.0})
           .eq('id', loan.id)
           .eq('user_id', userId);
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'loan',
+        action: 'marked_paid',
+        title: 'Loan marked paid',
+        targetId: loan.id,
+        description: '${loan.name} was marked as fully paid.',
+        metadata: <String, dynamic>{
+          'loan_name': loan.name,
+          'remaining_balance': 0.0,
+        },
+      );
       if (!mounted) return;
       final LoanModel updatedLoan = loan.copyWith(
         remainingBalance: 0.0,
@@ -241,6 +253,22 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
       await _recordContribution(
         personId: paidByPersonId,
         amount: paymentAmount,
+      );
+      await ActivityLogRepository.instance.createLog(
+        targetType: 'loan',
+        action: isFinal ? 'marked_paid' : 'payment_recorded',
+        title: isFinal ? 'Loan marked paid' : 'Loan payment recorded',
+        targetId: loan.id,
+        personId: paidByPersonId,
+        description: isFinal
+            ? '${loan.name} was fully paid.'
+            : '${loan.name} payment was recorded.',
+        metadata: <String, dynamic>{
+          'loan_name': loan.name,
+          'amount': paymentAmount,
+          'paid_paydays': newPaidPaydays,
+          'remaining_balance': newBalance,
+        },
       );
 
       if (!mounted) return;
@@ -403,13 +431,28 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
           IconButton(
             icon: const Icon(Icons.add_alert_outlined),
             tooltip: 'Add reminder',
-            onPressed: () => showReminderFormSheet(
-              context,
-              targetType: 'loan',
-              targetId: loan.id,
-              prefillTitle: '${loan.name} payment',
-              prefillDueAt: loan.nextDueDate,
-            ),
+            onPressed: () async {
+              final result = await showReminderFormSheet(
+                context,
+                targetType: 'loan',
+                targetId: loan.id,
+                prefillTitle: '${loan.name} payment',
+                prefillDueAt: loan.nextDueDate,
+              );
+              if (result == null) return;
+              await ActivityLogRepository.instance.createLog(
+                targetType: result.targetType,
+                action: 'reminder_created',
+                title: 'Reminder created',
+                targetId: result.targetId,
+                personId: result.personId,
+                description: '${result.title} was scheduled.',
+                metadata: <String, dynamic>{
+                  'reminder_title': result.title,
+                  'remind_at': result.remindAt.toIso8601String(),
+                },
+              );
+            },
           ),
         ],
       ),

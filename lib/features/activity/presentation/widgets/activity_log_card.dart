@@ -100,6 +100,8 @@ class ActivityLogCard extends StatelessWidget {
       'deleted' => Icons.delete_outline,
       'marked_paid' => Icons.check_circle_outline,
       'marked_unpaid' => Icons.undo_outlined,
+      'archived' => Icons.archive_outlined,
+      'payment_recorded' => Icons.payments_outlined,
       'proof_uploaded' => Icons.upload_file_outlined,
       'reminder_created' => Icons.add_alert_outlined,
       'reminder_completed' => Icons.notifications_active_outlined,
@@ -109,6 +111,9 @@ class ActivityLogCard extends StatelessWidget {
         'bill' => Icons.receipt_long_outlined,
         'loan' => Icons.account_balance_outlined,
         'person' => Icons.person_outline,
+        'people_group' => Icons.groups_outlined,
+        'category' => Icons.category_outlined,
+        'transaction' => Icons.swap_horiz_outlined,
         'reminder' => Icons.notifications_outlined,
         'payment_proof' => Icons.image_outlined,
         _ => Icons.info_outline,
@@ -121,8 +126,9 @@ class ActivityLogCard extends StatelessWidget {
       'deleted' || 'reminder_cancelled' => colors.error,
       'marked_paid' ||
       'reminder_completed' ||
+      'payment_recorded' ||
       'proof_uploaded' => const Color(0xFFA7D7B5),
-      'marked_unpaid' => colors.tertiary,
+      'marked_unpaid' || 'archived' => colors.tertiary,
       _ => colors.primary,
     };
   }

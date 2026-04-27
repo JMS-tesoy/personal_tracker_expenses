@@ -89,10 +89,10 @@ class BillCard extends StatelessWidget {
                           ),
                         ],
                         if (bill.isPaid &&
-                            bill.paidByPersonName != null) ...<Widget>[
+                            bill.paidByDisplayName != null) ...<Widget>[
                           const SizedBox(height: 3),
                           Text(
-                            'Paid by: ${bill.paidByPersonName!}',
+                            'Paid by: ${bill.paidByDisplayName!}',
                             style: textTheme.bodySmall?.copyWith(
                               color: const Color(0xFFA7D7B5),
                               fontWeight: FontWeight.w500,
@@ -148,12 +148,12 @@ class BillCard extends StatelessWidget {
                 _BillMetric(label: 'Remarks', value: bill.remarks!),
               ],
 
-              const SizedBox(height: 14),
+              if (!bill.isPaid) ...<Widget>[
+                const SizedBox(height: 14),
 
-              // ── Actions ──────────────────────────────────────────────────
-              Row(
-                children: <Widget>[
-                  if (!bill.isPaid)
+                // ── Actions ────────────────────────────────────────────────
+                Row(
+                  children: <Widget>[
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: onMarkPaid,
@@ -164,38 +164,28 @@ class BillCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (bill.isPaid)
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: onMarkUnpaid,
-                        icon: const Icon(Icons.undo, size: 16),
-                        label: const Text('Mark Active'),
-                        style: OutlinedButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
+                    const SizedBox(width: 10),
+                    OutlinedButton.icon(
+                      onPressed: onDelete,
+                      icon: Icon(
+                        Icons.delete_outline,
+                        size: 16,
+                        color: colorScheme.error,
+                      ),
+                      label: Text(
+                        'Delete',
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        side: BorderSide(
+                          color: colorScheme.error.withValues(alpha: 0.50),
                         ),
                       ),
                     ),
-                  const SizedBox(width: 10),
-                  OutlinedButton.icon(
-                    onPressed: onDelete,
-                    icon: Icon(
-                      Icons.delete_outline,
-                      size: 16,
-                      color: colorScheme.error,
-                    ),
-                    label: Text(
-                      'Delete',
-                      style: TextStyle(color: colorScheme.error),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide(
-                        color: colorScheme.error.withValues(alpha: 0.50),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

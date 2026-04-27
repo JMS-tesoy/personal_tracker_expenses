@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../shared/widgets/floating_action_surface.dart';
+
 class DashboardSummaryCard extends StatelessWidget {
   const DashboardSummaryCard({
     super.key,
@@ -101,21 +103,21 @@ class DashboardSummaryCard extends StatelessWidget {
                   _SummaryIcon(icon: icon, isLarge: isLarge),
                   const Spacer(),
                   if (actionIcon != null && onActionPressed != null)
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: colorScheme.surface.withValues(alpha: 0.76),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: IconButton(
-                        onPressed: onActionPressed,
-                        padding: EdgeInsets.zero,
-                        tooltip: actionTooltip,
-                        icon: Icon(
-                          actionIcon,
-                          color: colorScheme.primary,
-                          size: 24,
+                    Tooltip(
+                      message: actionTooltip ?? '',
+                      child: SizedBox(
+                        width: 46,
+                        height: 46,
+                        child: FloatingActionSurface(
+                          onTap: onActionPressed,
+                          borderRadius: 15,
+                          minHeight: 46,
+                          padding: EdgeInsets.zero,
+                          child: Icon(
+                            actionIcon,
+                            color: colorScheme.primary,
+                            size: 24,
+                          ),
                         ),
                       ),
                     ),
