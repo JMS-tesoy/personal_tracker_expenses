@@ -102,7 +102,8 @@ class ActivityLogCard extends StatelessWidget {
                           log.deviceName!.trim().isNotEmpty)
                         _MetaPill(
                           icon: Icons.phone_android_outlined,
-                          label: log.devicePlatform != null &&
+                          label:
+                              log.devicePlatform != null &&
                                   log.devicePlatform!.trim().isNotEmpty
                               ? '${log.deviceName} • ${log.devicePlatform}'
                               : log.deviceName!,
@@ -171,8 +172,7 @@ class ActivityLogCard extends StatelessWidget {
       'marked_paid' ||
       'reminder_completed' ||
       'payment_recorded' ||
-      'proof_uploaded' =>
-        const Color(0xFF2E7D52),
+      'proof_uploaded' => const Color(0xFF2E7D52),
       'marked_unpaid' || 'archived' => colors.tertiary,
       _ => colors.primary,
     };
@@ -200,8 +200,8 @@ class ActivityLogCard extends StatelessWidget {
     final int hour = dt.hour > 12
         ? dt.hour - 12
         : dt.hour == 0
-            ? 12
-            : dt.hour;
+        ? 12
+        : dt.hour;
     final String min = dt.minute.toString().padLeft(2, '0');
     final String ampm = dt.hour >= 12 ? 'PM' : 'AM';
 
@@ -261,10 +261,7 @@ class _TypePill extends StatelessWidget {
 }
 
 class _MetaPill extends StatelessWidget {
-  const _MetaPill({
-    required this.icon,
-    required this.label,
-  });
+  const _MetaPill({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -303,10 +300,7 @@ class _MetaPill extends StatelessWidget {
 }
 
 class _ActivityStyle {
-  const _ActivityStyle({
-    required this.icon,
-    required this.color,
-  });
+  const _ActivityStyle({required this.icon, required this.color});
 
   final IconData icon;
   final Color color;

@@ -27,19 +27,16 @@ class DeviceAuditService {
 
       final Map<String, dynamic> row = await _supabase
           .from('user_devices')
-          .upsert(
-            <String, dynamic>{
-              'user_id': userId,
-              'device_instance_id': deviceInstanceId,
-              'device_name': snapshot.deviceName,
-              'platform': snapshot.platform,
-              'os_version': snapshot.osVersion,
-              'app_version': snapshot.appVersion,
-              'app_build_number': snapshot.appBuildNumber,
-              'last_seen_at': DateTime.now().toUtc().toIso8601String(),
-            },
-            onConflict: 'user_id,device_instance_id',
-          )
+          .upsert(<String, dynamic>{
+            'user_id': userId,
+            'device_instance_id': deviceInstanceId,
+            'device_name': snapshot.deviceName,
+            'platform': snapshot.platform,
+            'os_version': snapshot.osVersion,
+            'app_version': snapshot.appVersion,
+            'app_build_number': snapshot.appBuildNumber,
+            'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+          }, onConflict: 'user_id,device_instance_id')
           .select('id')
           .single();
 

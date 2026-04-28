@@ -26,9 +26,9 @@ class _ProofUploadBoxState extends State<ProofUploadBox> {
 
   Future<void> _upload() async {
     if (widget.billId.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Missing bill record.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Missing bill record.')));
       return;
     }
 
@@ -44,9 +44,9 @@ class _ProofUploadBoxState extends State<ProofUploadBox> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payment proof uploaded.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Payment proof uploaded.')));
     } on PaymentProofUploadCancelled {
       return;
     } catch (error, stackTrace) {

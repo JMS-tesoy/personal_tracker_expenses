@@ -33,8 +33,8 @@ class AttachmentService {
       throw Exception('Missing bill id.');
     }
 
-    final String? uploadedByDeviceId =
-        await DeviceAuditService.instance.registerCurrentDevice();
+    final String? uploadedByDeviceId = await DeviceAuditService.instance
+        .registerCurrentDevice();
 
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -82,7 +82,9 @@ class AttachmentService {
     debugPrint('AttachmentService: size=$size');
 
     try {
-      await _supabase.storage.from(_bucket).upload(
+      await _supabase.storage
+          .from(_bucket)
+          .upload(
             storagePath,
             file,
             fileOptions: FileOptions(
@@ -103,8 +105,9 @@ class AttachmentService {
       rethrow;
     }
 
-    final String fileUrl =
-        _supabase.storage.from(_bucket).getPublicUrl(storagePath);
+    final String fileUrl = _supabase.storage
+        .from(_bucket)
+        .getPublicUrl(storagePath);
 
     debugPrint('AttachmentService: publicUrl=$fileUrl');
 
@@ -144,8 +147,9 @@ class AttachmentService {
       throw Exception('Attachment insert returned no record.');
     }
 
-    final AttachmentModel attachment =
-        AttachmentModel.fromMap(result.first as Map<String, dynamic>);
+    final AttachmentModel attachment = AttachmentModel.fromMap(
+      result.first as Map<String, dynamic>,
+    );
 
     await ActivityLogRepository.instance.createLog(
       targetType: 'payment_proof',

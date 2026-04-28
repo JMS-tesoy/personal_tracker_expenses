@@ -59,8 +59,9 @@ class ActivityLogRepository {
           .order('created_at', ascending: false)
           .limit(limit);
 
-      final List<ActivityLogModel> logs =
-          rows.map(ActivityLogModel.fromMap).toList();
+      final List<ActivityLogModel> logs = rows
+          .map(ActivityLogModel.fromMap)
+          .toList();
 
       return _enrichLogs(logs);
     } catch (error, stackTrace) {
@@ -86,8 +87,9 @@ class ActivityLogRepository {
           .eq('target_id', targetId)
           .order('created_at', ascending: false);
 
-      final List<ActivityLogModel> logs =
-          rows.map(ActivityLogModel.fromMap).toList();
+      final List<ActivityLogModel> logs = rows
+          .map(ActivityLogModel.fromMap)
+          .toList();
 
       return _enrichLogs(logs);
     } catch (error, stackTrace) {
@@ -109,8 +111,9 @@ class ActivityLogRepository {
           .eq('person_id', personId)
           .order('created_at', ascending: false);
 
-      final List<ActivityLogModel> logs =
-          rows.map(ActivityLogModel.fromMap).toList();
+      final List<ActivityLogModel> logs = rows
+          .map(ActivityLogModel.fromMap)
+          .toList();
 
       return _enrichLogs(logs);
     } catch (error, stackTrace) {
@@ -132,8 +135,9 @@ class ActivityLogRepository {
           .eq('action', action)
           .order('created_at', ascending: false);
 
-      final List<ActivityLogModel> logs =
-          rows.map(ActivityLogModel.fromMap).toList();
+      final List<ActivityLogModel> logs = rows
+          .map(ActivityLogModel.fromMap)
+          .toList();
 
       return _enrichLogs(logs);
     } catch (error, stackTrace) {
@@ -154,8 +158,9 @@ class ActivityLogRepository {
     final Map<String, String> loanNames = await _loadLoanNames(logs);
 
     return logs.map((ActivityLogModel log) {
-      final String? personName =
-          log.personId == null ? null : personNames[log.personId];
+      final String? personName = log.personId == null
+          ? null
+          : personNames[log.personId];
 
       final _DeviceAuditInfo? device = log.uploadedByDeviceId == null
           ? null
@@ -366,10 +371,7 @@ class ActivityLogRepository {
 }
 
 class _DeviceAuditInfo {
-  const _DeviceAuditInfo({
-    required this.deviceName,
-    required this.platform,
-  });
+  const _DeviceAuditInfo({required this.deviceName, required this.platform});
 
   final String deviceName;
   final String platform;

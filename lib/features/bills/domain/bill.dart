@@ -92,8 +92,9 @@ class BillModel {
 
   factory BillModel.fromMap(Map<String, dynamic> map) {
     final String? paidByPersonId = _emptyToNull(map['paid_by_person_id']);
-    final List<String> paidByPersonIds =
-        _parseStringList(map['paid_by_person_ids']);
+    final List<String> paidByPersonIds = _parseStringList(
+      map['paid_by_person_ids'],
+    );
     final List<String> mergedPaidByPersonIds = paidByPersonIds.isNotEmpty
         ? paidByPersonIds
         : <String>[?paidByPersonId];

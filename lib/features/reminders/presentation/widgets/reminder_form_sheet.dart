@@ -69,8 +69,7 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
       _remindAt = DateTime(base.year, base.month, base.day, 9, 0);
       if (_remindAt.isBefore(DateTime.now())) {
         final DateTime tomorrow = DateTime.now().add(const Duration(days: 1));
-        _remindAt =
-            DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0);
+        _remindAt = DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0);
       }
     }
 
@@ -89,8 +88,7 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
       if (!mounted) return;
       setState(() {
         _people = response
-            .map((dynamic e) =>
-                PersonModel.fromMap(e as Map<String, dynamic>))
+            .map((dynamic e) => PersonModel.fromMap(e as Map<String, dynamic>))
             .toList();
         _loadingPeople = false;
       });
@@ -194,8 +192,8 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
       return;
     }
 
-    final bool hasPermission =
-        await LocalNotificationService.instance.requestPermission();
+    final bool hasPermission = await LocalNotificationService.instance
+        .requestPermission();
 
     if (!mounted) return;
 
@@ -218,8 +216,8 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
     final int hour = dt.hour > 12
         ? dt.hour - 12
         : dt.hour == 0
-            ? 12
-            : dt.hour;
+        ? 12
+        : dt.hour;
     final String min = dt.minute.toString().padLeft(2, '0');
     final String ampm = dt.hour >= 12 ? 'PM' : 'AM';
     return '$mo/$da/${dt.year}  $hour:$min $ampm';
@@ -248,10 +246,9 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                   widget.existingReminder != null
                       ? 'Edit Reminder'
                       : 'Add Reminder',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
               ),
               IconButton(
@@ -268,7 +265,8 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
             decoration: InputDecoration(
               labelText: 'Title',
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             textCapitalization: TextCapitalization.sentences,
           ),
@@ -280,7 +278,8 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
             decoration: InputDecoration(
               labelText: 'Note (optional)',
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             maxLines: 2,
             textCapitalization: TextCapitalization.sentences,
@@ -294,32 +293,32 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                   child: Center(child: CircularProgressIndicator()),
                 )
               : _people.isEmpty
-                  ? const SizedBox.shrink()
-                  : DropdownButtonFormField<String?>(
-                      initialValue: _selectedPersonId,
-                      decoration: InputDecoration(
-                        labelText: 'Person (optional)',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      items: <DropdownMenuItem<String?>>[
-                        const DropdownMenuItem<String?>(
-                          value: null,
-                          child: Text('No person'),
-                        ),
-                        ..._people.map(
-                          (PersonModel p) => DropdownMenuItem<String?>(
-                            value: p.id,
-                            child: Text(p.name),
-                          ),
-                        ),
-                      ],
-                      onChanged: (String? val) {
-                        setState(() => _selectedPersonId = val);
-                      },
+              ? const SizedBox.shrink()
+              : DropdownButtonFormField<String?>(
+                  initialValue: _selectedPersonId,
+                  decoration: InputDecoration(
+                    labelText: 'Person (optional)',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-          if (!_loadingPeople && _people.isNotEmpty)
-            const SizedBox(height: 12),
+                  ),
+                  items: <DropdownMenuItem<String?>>[
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('No person'),
+                    ),
+                    ..._people.map(
+                      (PersonModel p) => DropdownMenuItem<String?>(
+                        value: p.id,
+                        child: Text(p.name),
+                      ),
+                    ),
+                  ],
+                  onChanged: (String? val) {
+                    setState(() => _selectedPersonId = val);
+                  },
+                ),
+          if (!_loadingPeople && _people.isNotEmpty) const SizedBox(height: 12),
 
           // Remind at
           InkWell(
@@ -334,8 +333,11 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
               ),
               child: Row(
                 children: <Widget>[
-                  Icon(Icons.notifications_outlined,
-                      color: colorScheme.primary, size: 20),
+                  Icon(
+                    Icons.notifications_outlined,
+                    color: colorScheme.primary,
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -343,8 +345,11 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
-                  Icon(Icons.edit_calendar_outlined,
-                      color: colorScheme.onSurfaceVariant, size: 18),
+                  Icon(
+                    Icons.edit_calendar_outlined,
+                    color: colorScheme.onSurfaceVariant,
+                    size: 18,
+                  ),
                 ],
               ),
             ),
@@ -357,7 +362,8 @@ class _ReminderFormSheetState extends State<ReminderFormSheet> {
             decoration: InputDecoration(
               labelText: 'Repeat',
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             items: _repeatOptions
                 .map(

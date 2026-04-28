@@ -73,13 +73,16 @@ class _BillDiscussionSectionState extends State<BillDiscussionSection> {
     });
 
     try {
-      final List<PersonModel> people = await PeopleRepository.instance.fetchAll();
-      final List<BillCommentModel> comments =
-          await _repo.fetchForBill(widget.billId);
+      final List<PersonModel> people = await PeopleRepository.instance
+          .fetchAll();
+      final List<BillCommentModel> comments = await _repo.fetchForBill(
+        widget.billId,
+      );
 
       if (!mounted) return;
 
-      final bool selectedPersonExists = _selectedPersonId == null ||
+      final bool selectedPersonExists =
+          _selectedPersonId == null ||
           people.any((PersonModel p) => p.id == _selectedPersonId);
 
       setState(() {
@@ -131,8 +134,9 @@ class _BillDiscussionSectionState extends State<BillDiscussionSection> {
 
       _messageController.clear();
 
-      final List<BillCommentModel> comments =
-          await _repo.fetchForBill(widget.billId);
+      final List<BillCommentModel> comments = await _repo.fetchForBill(
+        widget.billId,
+      );
 
       if (!mounted) return;
 
@@ -141,9 +145,9 @@ class _BillDiscussionSectionState extends State<BillDiscussionSection> {
         _isSending = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Comment added.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Comment added.')));
     } catch (error, stackTrace) {
       debugPrint('BillDiscussionSection._send error: $error');
       debugPrintStack(stackTrace: stackTrace);
@@ -157,8 +161,7 @@ class _BillDiscussionSectionState extends State<BillDiscussionSection> {
     }
   }
 
-  bool get _canSend =>
-      !_isSending && _messageController.text.trim().isNotEmpty;
+  bool get _canSend => !_isSending && _messageController.text.trim().isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -172,9 +175,9 @@ class _BillDiscussionSectionState extends State<BillDiscussionSection> {
             Expanded(
               child: Text(
                 'Discussion',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
             ),
             IconButton(
@@ -428,8 +431,8 @@ class _CommentTile extends StatelessWidget {
     final int hour = dt.hour > 12
         ? dt.hour - 12
         : dt.hour == 0
-            ? 12
-            : dt.hour;
+        ? 12
+        : dt.hour;
     final String minute = dt.minute.toString().padLeft(2, '0');
     final String ampm = dt.hour >= 12 ? 'PM' : 'AM';
 
@@ -448,11 +451,7 @@ class _EmptyDiscussion extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 26),
       child: Column(
         children: <Widget>[
-          Icon(
-            Icons.forum_outlined,
-            size: 36,
-            color: colors.onSurfaceVariant,
-          ),
+          Icon(Icons.forum_outlined, size: 36, color: colors.onSurfaceVariant),
           const SizedBox(height: 10),
           Text(
             'No discussion yet',
@@ -465,10 +464,7 @@ class _EmptyDiscussion extends StatelessWidget {
           Text(
             'Add notes, payment updates, or responsibility comments for this bill.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: colors.onSurfaceVariant,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
           ),
         ],
       ),
@@ -490,9 +486,7 @@ class _DiscussionError extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: colors.errorContainer,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(16),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Text(
         message,

@@ -52,8 +52,8 @@ class ActivityLogModel {
       title: map['title']?.toString() ?? 'Activity',
       description: _emptyToNull(map['description']),
       metadata: metadataMap,
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '')
-              ?.toLocal() ??
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
           DateTime.now(),
     );
   }

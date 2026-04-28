@@ -4,15 +4,7 @@ import '../../data/models/activity_log_model.dart';
 import '../../data/repositories/activity_log_repository.dart';
 import '../widgets/activity_log_card.dart';
 
-enum _ActivityFilter {
-  all,
-  bills,
-  loans,
-  proofs,
-  reminders,
-  people,
-  money,
-}
+enum _ActivityFilter { all, bills, loans, proofs, reminders, people, money }
 
 class ActivityTimelineScreen extends StatefulWidget {
   const ActivityTimelineScreen({super.key, this.onBack});
@@ -134,67 +126,66 @@ class _ActivityTimelineScreenState extends State<ActivityTimelineScreen>
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _hasError
-                ? _ErrorState(onRetry: () => _load(showLoading: true))
-                : RefreshIndicator(
-                    onRefresh: () => _load(showLoading: false),
-                    child: CustomScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: <Widget>[
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                _HeaderSummary(
-                                  total: _logs.length,
-                                  visible: visibleLogs.length,
-                                  isRefreshing: _isRefreshing,
-                                  colors: colors,
-                                ),
-                                const SizedBox(height: 12),
-                                _FilterChips(
-                                  selected: _filter,
-                                  onChanged: (activityFilter) {},
-                                  onSelected: (activityFilter) {},
-                                  onFilterChanged: (_ActivityFilter filter) {
-                                    setState(() => _filter = filter);
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-                              ],
+            ? _ErrorState(onRetry: () => _load(showLoading: true))
+            : RefreshIndicator(
+                onRefresh: () => _load(showLoading: false),
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: <Widget>[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            _HeaderSummary(
+                              total: _logs.length,
+                              visible: visibleLogs.length,
+                              isRefreshing: _isRefreshing,
+                              colors: colors,
                             ),
-                          ),
-                        ),
-                        if (_logs.isEmpty)
-                          const SliverFillRemaining(
-                            hasScrollBody: false,
-                            child: _EmptyState(
-                              message:
-                                  'Actions on bills, loans, people, reminders, and proofs will appear here.',
-                            ),
-                          )
-                        else if (visibleLogs.isEmpty)
-                          const SliverFillRemaining(
-                            hasScrollBody: false,
-                            child: _EmptyState(
-                              message:
-                                  'No activity found for this filter yet.',
-                            ),
-                          )
-                        else
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                            sliver: SliverList.builder(
-                              itemCount: visibleLogs.length,
-                              itemBuilder: (BuildContext context, int index) {
-                                return ActivityLogCard(log: visibleLogs[index]);
+                            const SizedBox(height: 12),
+                            _FilterChips(
+                              selected: _filter,
+                              onChanged: (activityFilter) {},
+                              onSelected: (activityFilter) {},
+                              onFilterChanged: (_ActivityFilter filter) {
+                                setState(() => _filter = filter);
                               },
                             ),
-                          ),
-                      ],
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                    if (_logs.isEmpty)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _EmptyState(
+                          message:
+                              'Actions on bills, loans, people, reminders, and proofs will appear here.',
+                        ),
+                      )
+                    else if (visibleLogs.isEmpty)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _EmptyState(
+                          message: 'No activity found for this filter yet.',
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                        sliver: SliverList.builder(
+                          itemCount: visibleLogs.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            return ActivityLogCard(log: visibleLogs[index]);
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
       ),
     );
   }
@@ -221,9 +212,7 @@ class _HeaderSummary extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surfaceContainerHighest.withValues(alpha: 0.65),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.8),
-        ),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.8)),
       ),
       child: Row(
         children: <Widget>[
@@ -244,8 +233,8 @@ class _HeaderSummary extends StatelessWidget {
                 Text(
                   'Audit Trail',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -367,9 +356,9 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'No activity yet.',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
             Text(

@@ -123,12 +123,12 @@ class _PeopleScreenState extends State<PeopleScreen> {
   }
 
   void _replaceGroups(List<_PeopleGroup> groups, {int? selectedIndex}) {
-    final List<_PeopleGroup> nextGroups =
-        groups.isEmpty ? _defaultGroups() : groups;
-    final int nextIndex =
-        (selectedIndex ?? _selectedGroupIndex)
-            .clamp(0, nextGroups.length - 1)
-            .toInt();
+    final List<_PeopleGroup> nextGroups = groups.isEmpty
+        ? _defaultGroups()
+        : groups;
+    final int nextIndex = (selectedIndex ?? _selectedGroupIndex)
+        .clamp(0, nextGroups.length - 1)
+        .toInt();
 
     _groups = nextGroups;
     _selectedGroupIndex = nextIndex;
@@ -209,10 +209,10 @@ class _PeopleScreenState extends State<PeopleScreen> {
       );
       if (!mounted) return;
       setState(() {
-        _replaceGroups(
-          <_PeopleGroup>[..._groups, group],
-          selectedIndex: _groups.length,
-        );
+        _replaceGroups(<_PeopleGroup>[
+          ..._groups,
+          group,
+        ], selectedIndex: _groups.length);
       });
     } catch (_) {
       if (!mounted) return;
@@ -345,11 +345,12 @@ class _PeopleScreenState extends State<PeopleScreen> {
     final _PersonDeleteLinks links = await _loadPersonDeleteLinks(person);
     if (!mounted) return;
 
-    final String pin =
-        ((DateTime.now().millisecondsSinceEpoch % 9000) + 1000).toString();
+    final String pin = ((DateTime.now().millisecondsSinceEpoch % 9000) + 1000)
+        .toString();
     final String? role = person.role?.trim();
-    final String displayRole =
-        role == null || role.isEmpty ? 'Ungrouped' : role;
+    final String displayRole = role == null || role.isEmpty
+        ? 'Ungrouped'
+        : role;
     final TextEditingController pinController = TextEditingController();
     String typedPin = '';
 
@@ -619,8 +620,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
 
   _PeopleGroup? get _selectedGroup {
     if (_groups.isEmpty) return null;
-    final int index =
-        _selectedGroupIndex.clamp(0, _groups.length - 1).toInt();
+    final int index = _selectedGroupIndex.clamp(0, _groups.length - 1).toInt();
     return _groups[index];
   }
 
@@ -631,16 +631,56 @@ class _PeopleScreenState extends State<PeopleScreen> {
     try {
       final String userId = requireCurrentUserId();
       await _supabase.from('people').insert(<Map<String, dynamic>>[
-        <String, dynamic>{'user_id': userId, 'name': 'Juan Dela Cruz', 'role': 'Family'},
-        <String, dynamic>{'user_id': userId, 'name': 'Maria Santos', 'role': 'Family'},
-        <String, dynamic>{'user_id': userId, 'name': 'Jose Reyes', 'role': 'Friend'},
-        <String, dynamic>{'user_id': userId, 'name': 'Ana Garcia', 'role': 'Friend'},
-        <String, dynamic>{'user_id': userId, 'name': 'Pedro Ramos', 'role': 'Coworker'},
-        <String, dynamic>{'user_id': userId, 'name': 'Liza Cruz', 'role': 'Coworker'},
-        <String, dynamic>{'user_id': userId, 'name': 'Carlo Mendoza', 'role': 'Family'},
-        <String, dynamic>{'user_id': userId, 'name': 'Nina Lopez', 'role': 'Family'},
-        <String, dynamic>{'user_id': userId, 'name': 'Mark Flores', 'role': 'Coworker'},
-        <String, dynamic>{'user_id': userId, 'name': 'Grace Aquino', 'role': 'Coworker'},
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Juan Dela Cruz',
+          'role': 'Family',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Maria Santos',
+          'role': 'Family',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Jose Reyes',
+          'role': 'Friend',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Ana Garcia',
+          'role': 'Friend',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Pedro Ramos',
+          'role': 'Coworker',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Liza Cruz',
+          'role': 'Coworker',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Carlo Mendoza',
+          'role': 'Family',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Nina Lopez',
+          'role': 'Family',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Mark Flores',
+          'role': 'Coworker',
+        },
+        <String, dynamic>{
+          'user_id': userId,
+          'name': 'Grace Aquino',
+          'role': 'Coworker',
+        },
       ]);
       await ActivityLogRepository.instance.createLog(
         targetType: 'person',
@@ -739,8 +779,9 @@ class _PeopleScreenState extends State<PeopleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final int selectedIndex =
-        _selectedGroupIndex.clamp(0, _groups.length - 1).toInt();
+    final int selectedIndex = _selectedGroupIndex
+        .clamp(0, _groups.length - 1)
+        .toInt();
 
     return Scaffold(
       appBar: AppBar(
@@ -765,15 +806,15 @@ class _PeopleScreenState extends State<PeopleScreen> {
             },
             itemBuilder: (BuildContext context) =>
                 <PopupMenuEntry<_GroupAction>>[
-              const PopupMenuItem<_GroupAction>(
-                value: _GroupAction.rename,
-                child: Text('Rename group'),
-              ),
-              const PopupMenuItem<_GroupAction>(
-                value: _GroupAction.delete,
-                child: Text('Delete group'),
-              ),
-            ],
+                  const PopupMenuItem<_GroupAction>(
+                    value: _GroupAction.rename,
+                    child: Text('Rename group'),
+                  ),
+                  const PopupMenuItem<_GroupAction>(
+                    value: _GroupAction.delete,
+                    child: Text('Delete group'),
+                  ),
+                ],
           ),
         ],
       ),
@@ -819,10 +860,7 @@ class _PeopleGroup {
   final String name;
 
   factory _PeopleGroup.fromMap(Map<String, dynamic> map) {
-    return _PeopleGroup(
-      id:   map['id'].toString(),
-      name: map['name'].toString(),
-    );
+    return _PeopleGroup(id: map['id'].toString(), name: map['name'].toString());
   }
 }
 
@@ -846,10 +884,7 @@ class _PersonDeleteLinks {
 }
 
 class _DeleteResponsibilityRow extends StatelessWidget {
-  const _DeleteResponsibilityRow({
-    required this.label,
-    required this.count,
-  });
+  const _DeleteResponsibilityRow({required this.label, required this.count});
 
   final String label;
   final int count;

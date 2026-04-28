@@ -11,8 +11,8 @@ class PersonCard extends StatelessWidget {
   const PersonCard({
     super.key,
     required this.person,
-    this.onTap,        // ← ADDED: opens PersonDetailsScreen
-    this.onLongPress,  // existing: opens delete dialog
+    this.onTap, // ← ADDED: opens PersonDetailsScreen
+    this.onLongPress, // existing: opens delete dialog
   });
 
   final Person person;
@@ -29,9 +29,7 @@ class PersonCard extends StatelessWidget {
       color: cs.surfaceContainerHighest.withValues(alpha: 0.72),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: cs.outlineVariant.withValues(alpha: 0.65),
-        ),
+        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.65)),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),

@@ -9,11 +9,7 @@ import '../../domain/person.dart';
 import '../widgets/assigned_items_list.dart';
 
 class PersonDetailsScreen extends StatefulWidget {
-  const PersonDetailsScreen({
-    super.key,
-    required this.person,
-    this.onBack,
-  });
+  const PersonDetailsScreen({super.key, required this.person, this.onBack});
 
   final PersonModel person;
   final VoidCallback? onBack;
@@ -73,8 +69,8 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen>
     }
 
     try {
-      final PersonSummary summary =
-          await PeopleRepository.instance.fetchSummary(widget.person.id);
+      final PersonSummary summary = await PeopleRepository.instance
+          .fetchSummary(widget.person.id);
 
       if (!mounted) return;
 
@@ -117,10 +113,8 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen>
       title: '${widget.person.displayName} assigned bills',
       items: _summary.assignedBills,
       emptyMessage: 'No assigned bills yet.',
-      itemBuilder: (Map<String, dynamic> bill) => _buildBillDialogTile(
-        bill,
-        Icons.receipt_long_outlined,
-      ),
+      itemBuilder: (Map<String, dynamic> bill) =>
+          _buildBillDialogTile(bill, Icons.receipt_long_outlined),
     );
   }
 
@@ -133,10 +127,8 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen>
       title: '${widget.person.displayName} paid bills',
       items: _summary.paidBills,
       emptyMessage: 'No bills paid by this person yet.',
-      itemBuilder: (Map<String, dynamic> bill) => _buildBillDialogTile(
-        bill,
-        Icons.check_circle_outline,
-      ),
+      itemBuilder: (Map<String, dynamic> bill) =>
+          _buildBillDialogTile(bill, Icons.check_circle_outline),
     );
   }
 
@@ -249,8 +241,10 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen>
   }
 
   Widget _buildProofDialogTile(Map<String, dynamic> attachment) {
-    final String fileName =
-        _stringValue(attachment['file_name'], fallback: 'Proof');
+    final String fileName = _stringValue(
+      attachment['file_name'],
+      fallback: 'Proof',
+    );
     final String createdAt = _stringValue(attachment['created_at']);
 
     return ListTile(
@@ -270,10 +264,7 @@ class _PersonDetailsScreenState extends State<PersonDetailsScreen>
       appBar: AppBar(
         leading: widget.onBack == null
             ? null
-            : IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: _pop,
-              ),
+            : IconButton(icon: const Icon(Icons.arrow_back), onPressed: _pop),
         title: Text(person.displayName),
         actions: <Widget>[
           IconButton(
@@ -369,8 +360,9 @@ class _ProfileCard extends StatelessWidget {
           CircleAvatar(
             radius: 32,
             backgroundColor: cs.primaryContainer,
-            backgroundImage:
-                person.avatarUrl != null ? NetworkImage(person.avatarUrl!) : null,
+            backgroundImage: person.avatarUrl != null
+                ? NetworkImage(person.avatarUrl!)
+                : null,
             child: person.avatarUrl == null
                 ? Text(
                     person.initials,
@@ -389,10 +381,9 @@ class _ProfileCard extends StatelessWidget {
               children: <Widget>[
                 Text(
                   person.name,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 if (person.nickname != null &&
                     person.nickname!.isNotEmpty) ...<Widget>[
@@ -405,7 +396,8 @@ class _ProfileCard extends StatelessWidget {
                     ),
                   ),
                 ],
-                if (person.phone != null && person.phone!.isNotEmpty) ...<Widget>[
+                if (person.phone != null &&
+                    person.phone!.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 4),
                   Row(
                     children: <Widget>[
@@ -425,7 +417,8 @@ class _ProfileCard extends StatelessWidget {
                     ],
                   ),
                 ],
-                if (person.email != null && person.email!.isNotEmpty) ...<Widget>[
+                if (person.email != null &&
+                    person.email!.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 2),
                   Row(
                     children: <Widget>[
@@ -448,14 +441,12 @@ class _ProfileCard extends StatelessWidget {
                     ],
                   ),
                 ],
-                if (person.notes != null && person.notes!.isNotEmpty) ...<Widget>[
+                if (person.notes != null &&
+                    person.notes!.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 6),
                   Text(
                     person.notes!,
-                    style: TextStyle(
-                      color: cs.onSurfaceVariant,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -621,7 +612,9 @@ String _formatDialogDate(String iso) {
 String _formatDialogAmount(dynamic value) {
   try {
     final double amount = double.parse(value.toString());
-    return amount.toStringAsFixed(2).replaceAllMapped(
+    return amount
+        .toStringAsFixed(2)
+        .replaceAllMapped(
           RegExp(r'(\d)(?=(\d{3})+\.)'),
           (Match match) => '${match[1]},',
         );

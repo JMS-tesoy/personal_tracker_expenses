@@ -31,9 +31,8 @@ class BillCommentsRepository {
       final List<BillCommentModel> comments = rows
           .whereType<Map>()
           .map(
-            (Map<dynamic, dynamic> row) => BillCommentModel.fromMap(
-              Map<String, dynamic>.from(row),
-            ),
+            (Map<dynamic, dynamic> row) =>
+                BillCommentModel.fromMap(Map<String, dynamic>.from(row)),
           )
           .toList();
 
@@ -60,15 +59,13 @@ class BillCommentsRepository {
     }
 
     try {
-      final List<dynamic> rows = await _supabase
-          .from('bill_comments')
-          .insert(<String, dynamic>{
+      final List<dynamic> rows =
+          await _supabase.from('bill_comments').insert(<String, dynamic>{
             'user_id': userId,
             'bill_id': safeBillId,
             'person_id': _emptyToNull(personId),
             'message': safeMessage,
-          })
-          .select();
+          }).select();
 
       if (rows.isEmpty || rows.first is! Map) {
         return null;
@@ -96,8 +93,9 @@ class BillCommentsRepository {
         },
       );
 
-      final List<BillCommentModel> enriched =
-          await _attachPersonNames(<BillCommentModel>[comment]);
+      final List<BillCommentModel> enriched = await _attachPersonNames(
+        <BillCommentModel>[comment],
+      );
 
       return enriched.isEmpty ? comment : enriched.first;
     } catch (error, stackTrace) {
@@ -121,7 +119,8 @@ class BillCommentsRepository {
     if (personIds.isEmpty) return comments;
 
     try {
-      final List<PersonModel> people = await PeopleRepository.instance.fetchAll();
+      final List<PersonModel> people = await PeopleRepository.instance
+          .fetchAll();
 
       final Map<String, String> namesById = <String, String>{
         for (final PersonModel person in people)

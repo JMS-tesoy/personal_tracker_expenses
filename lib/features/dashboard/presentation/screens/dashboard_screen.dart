@@ -213,9 +213,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     Navigator.push<void>(
       context,
-      MaterialPageRoute<void>(
-        builder: (_) => const ActivityTimelineScreen(),
-      ),
+      MaterialPageRoute<void>(builder: (_) => const ActivityTimelineScreen()),
     );
   }
 
@@ -418,10 +416,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onTap: openActivityTimeline,
                     minHeight: 44,
                     padding: EdgeInsets.zero,
-                    child: Icon(
-                      Icons.history,
-                      color: colorScheme.primary,
-                    ),
+                    child: Icon(Icons.history, color: colorScheme.primary),
                   ),
                 ),
               ),

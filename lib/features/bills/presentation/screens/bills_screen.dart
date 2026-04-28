@@ -74,21 +74,23 @@ class _BillsScreenState extends State<BillsScreen>
           (List<Map<String, dynamic>> data) {
             if (!mounted) return;
             final List<BillModel> all = data.map((Map<String, dynamic> row) {
-              final Map<String, dynamic> enriched =
-                  Map<String, dynamic>.from(row);
+              final Map<String, dynamic> enriched = Map<String, dynamic>.from(
+                row,
+              );
               enriched['assigned_person_name'] =
                   _peopleNames[row['assigned_person_id']?.toString()];
               enriched['paid_by_person_name'] =
                   _peopleNames[row['paid_by_person_id']?.toString()];
-              final List<String> paidByPersonIds =
-                  _stringList(row['paid_by_person_ids']);
+              final List<String> paidByPersonIds = _stringList(
+                row['paid_by_person_ids'],
+              );
               final List<String> displayPaidByPersonIds =
                   paidByPersonIds.isNotEmpty
-                      ? paidByPersonIds
-                      : <String>[
-                          if (row['paid_by_person_id'] != null)
-                            row['paid_by_person_id'].toString(),
-                        ];
+                  ? paidByPersonIds
+                  : <String>[
+                      if (row['paid_by_person_id'] != null)
+                        row['paid_by_person_id'].toString(),
+                    ];
               enriched['paid_by_person_names'] = displayPaidByPersonIds
                   .map((String id) => _peopleNames[id])
                   .whereType<String>()
@@ -97,10 +99,12 @@ class _BillsScreenState extends State<BillsScreen>
             }).toList();
 
             setState(() {
-              _unpaid =
-                  all.where((BillModel b) => !b.isPaid && !b.isOverdue).toList();
-              _overdue =
-                  all.where((BillModel b) => !b.isPaid && b.isOverdue).toList();
+              _unpaid = all
+                  .where((BillModel b) => !b.isPaid && !b.isOverdue)
+                  .toList();
+              _overdue = all
+                  .where((BillModel b) => !b.isPaid && b.isOverdue)
+                  .toList();
               _paid = all.where((BillModel b) => b.isPaid).toList();
               isLoading = false;
             });
@@ -172,10 +176,7 @@ class _BillsScreenState extends State<BillsScreen>
                 FilledButton(
                   onPressed: selectedPersonIds.isEmpty
                       ? null
-                      : () => Navigator.pop(
-                            ctx,
-                            selectedPersonIds.toList(),
-                          ),
+                      : () => Navigator.pop(ctx, selectedPersonIds.toList()),
                   child: const Text('Confirm'),
                 ),
               ],
@@ -257,7 +258,6 @@ class _BillsScreenState extends State<BillsScreen>
     }
   }
 
-
   Future<void> _updateBillWithMultiplePayerFallback({
     required String billId,
     required String userId,
@@ -279,8 +279,9 @@ class _BillsScreenState extends State<BillsScreen>
         );
       }
 
-      final Map<String, dynamic> legacyUpdateData =
-          Map<String, dynamic>.from(updateData)..remove('paid_by_person_ids');
+      final Map<String, dynamic> legacyUpdateData = Map<String, dynamic>.from(
+        updateData,
+      )..remove('paid_by_person_ids');
 
       await supabase
           .from('bills')
@@ -306,8 +307,9 @@ class _BillsScreenState extends State<BillsScreen>
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _toDbDate(DateTime date) {
@@ -329,14 +331,13 @@ class _BillsScreenState extends State<BillsScreen>
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: titleColor,
-                    ),
+                  fontWeight: FontWeight.w900,
+                  color: titleColor,
+                ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: titleColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -374,15 +375,17 @@ class _BillsScreenState extends State<BillsScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(Icons.check_circle_outline,
-                size: 56, color: colors.onSurfaceVariant),
+            Icon(
+              Icons.check_circle_outline,
+              size: 56,
+              color: colors.onSurfaceVariant,
+            ),
             const SizedBox(height: 16),
             Text(
               'No active bills',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
@@ -411,15 +414,17 @@ class _BillsScreenState extends State<BillsScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Icon(Icons.receipt_long_outlined,
-                size: 56, color: colors.onSurfaceVariant),
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 56,
+              color: colors.onSurfaceVariant,
+            ),
             const SizedBox(height: 16),
             Text(
               'No paid bills yet',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
           ],
         ),
@@ -428,9 +433,7 @@ class _BillsScreenState extends State<BillsScreen>
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-      children: <Widget>[
-        _buildSection('Paid', _paid, const Color(0xFFA7D7B5)),
-      ],
+      children: <Widget>[_buildSection('Paid', _paid, const Color(0xFFA7D7B5))],
     );
   }
 
@@ -461,9 +464,7 @@ class _BillsScreenState extends State<BillsScreen>
                       children: <Widget>[
                         Text(
                           'Bills',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
+                          style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         const SizedBox(height: 4),
@@ -492,10 +493,13 @@ class _BillsScreenState extends State<BillsScreen>
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 1),
+                                  horizontal: 7,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.error
-                                      .withValues(alpha: 0.15),
+                                  color: colorScheme.error.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
@@ -520,10 +524,13 @@ class _BillsScreenState extends State<BillsScreen>
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 1),
+                                  horizontal: 7,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: colorScheme.primary
-                                      .withValues(alpha: 0.15),
+                                  color: colorScheme.primary.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
@@ -544,10 +551,7 @@ class _BillsScreenState extends State<BillsScreen>
                   Expanded(
                     child: TabBarView(
                       controller: _tabController,
-                      children: <Widget>[
-                        _buildUnpaidTab(),
-                        _buildPaidTab(),
-                      ],
+                      children: <Widget>[_buildUnpaidTab(), _buildPaidTab()],
                     ),
                   ),
                 ],

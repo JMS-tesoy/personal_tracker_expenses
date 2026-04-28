@@ -99,9 +99,7 @@ class ReminderModel {
       userId: userId,
       targetType: targetType ?? this.targetType,
       targetId: targetId ?? this.targetId,
-      personId: personId == _kKeep
-          ? this.personId
-          : personId as String?,
+      personId: personId == _kKeep ? this.personId : personId as String?,
       title: title,
       message: message,
       dueAt: dueAt,

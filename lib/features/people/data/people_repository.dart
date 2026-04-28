@@ -200,15 +200,15 @@ class PeopleRepository {
 
     final List<Map<String, dynamic>> paidBillsByMultiplePayers =
         await _safeRows(
-      label: 'paidBillsByMultiplePayers',
-      query: () => _supabase
-          .from('bills')
-          .select(_billSelect)
-          .eq('user_id', uid)
-          .eq('status', 'paid')
-          .contains('paid_by_person_ids', <String>[personId])
-          .order('paid_on', ascending: false),
-    );
+          label: 'paidBillsByMultiplePayers',
+          query: () => _supabase
+              .from('bills')
+              .select(_billSelect)
+              .eq('user_id', uid)
+              .eq('status', 'paid')
+              .contains('paid_by_person_ids', <String>[personId])
+              .order('paid_on', ascending: false),
+        );
 
     final List<Map<String, dynamic>> legacyPaidAssignedBills = assignedBills
         .where((Map<String, dynamic> bill) {
@@ -219,16 +219,15 @@ class PeopleRepository {
         .map(Map<String, dynamic>.from)
         .toList();
 
-    final List<Map<String, dynamic>> paidBills = _mergeRowsById(
-      <List<Map<String, dynamic>>>[
-        paidBillsBySinglePayer,
-        paidBillsByMultiplePayers,
-        legacyPaidAssignedBills,
-      ],
-    )..sort(
-        (Map<String, dynamic> a, Map<String, dynamic> b) =>
-            _compareDateDesc(a, b, <String>['paid_on', 'created_at']),
-      );
+    final List<Map<String, dynamic>> paidBills =
+        _mergeRowsById(<List<Map<String, dynamic>>>[
+          paidBillsBySinglePayer,
+          paidBillsByMultiplePayers,
+          legacyPaidAssignedBills,
+        ])..sort(
+          (Map<String, dynamic> a, Map<String, dynamic> b) =>
+              _compareDateDesc(a, b, <String>['paid_on', 'created_at']),
+        );
 
     final List<Map<String, dynamic>> reminders = await _safeRows(
       label: 'reminders',
@@ -261,7 +260,9 @@ class PeopleRepository {
     );
 
     final Set<String> linkedBillIds = <String>{
-      ...assignedBills.map((Map<String, dynamic> bill) => bill['id'].toString()),
+      ...assignedBills.map(
+        (Map<String, dynamic> bill) => bill['id'].toString(),
+      ),
       ...paidBills.map((Map<String, dynamic> bill) => bill['id'].toString()),
     };
 
@@ -277,8 +278,9 @@ class PeopleRepository {
 
     final List<Map<String, dynamic>> fallbackAttachments = allBillAttachments
         .where((Map<String, dynamic> attachment) {
-          final String uploadedBy =
-              _stringValue(attachment['uploaded_by_person_id']);
+          final String uploadedBy = _stringValue(
+            attachment['uploaded_by_person_id'],
+          );
           final String relatedId = _stringValue(attachment['related_id']);
 
           return uploadedBy.isEmpty && linkedBillIds.contains(relatedId);
@@ -286,15 +288,14 @@ class PeopleRepository {
         .map(Map<String, dynamic>.from)
         .toList();
 
-    final List<Map<String, dynamic>> attachments = _mergeRowsById(
-      <List<Map<String, dynamic>>>[
-        directAttachments,
-        fallbackAttachments,
-      ],
-    )..sort(
-        (Map<String, dynamic> a, Map<String, dynamic> b) =>
-            _compareDateDesc(a, b, <String>['created_at']),
-      );
+    final List<Map<String, dynamic>> attachments =
+        _mergeRowsById(<List<Map<String, dynamic>>>[
+          directAttachments,
+          fallbackAttachments,
+        ])..sort(
+          (Map<String, dynamic> a, Map<String, dynamic> b) =>
+              _compareDateDesc(a, b, <String>['created_at']),
+        );
 
     return PersonSummary(
       assignedBillsCount: assignedBills.length,

@@ -69,7 +69,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
   }
 
   /// Advance next_due_date by one payday:
-  /// - day == 15  → 30th of same month (clamped to last day)
+  /// - day == 15  → 30th of same month, clamped to last day
   /// - day >= 30  → 15th of next month
   DateTime _nextPaydayDueDate(DateTime current) {
     if (current.day == 15) {
@@ -77,6 +77,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
       final int safeDay = 30.clamp(1, lastDay);
       return DateTime(current.year, current.month, safeDay);
     }
+
     final DateTime nextMonth = DateTime(current.year, current.month + 1);
     return DateTime(nextMonth.year, nextMonth.month, 15);
   }
@@ -94,11 +95,13 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
 
     if (loan.paidPaydays >= loan.totalPaydays) {
       final String userId = requireCurrentUserId();
+
       await supabase
           .from('loans')
           .update(<String, dynamic>{'status': 'paid', 'remaining_balance': 0.0})
           .eq('id', loan.id)
           .eq('user_id', userId);
+
       await ActivityLogRepository.instance.createLog(
         targetType: 'loan',
         action: 'marked_paid',
@@ -110,11 +113,14 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
           'remaining_balance': 0.0,
         },
       );
+
       if (!mounted) return;
+
       final LoanModel updatedLoan = loan.copyWith(
         remainingBalance: 0.0,
         status: 'paid',
       );
+
       loan = updatedLoan;
       widget.onLoanChanged?.call(updatedLoan);
       _pop();
@@ -135,9 +141,11 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
     final DateTime? upcomingDueDate = loan.nextDueDate != null
         ? _nextPaydayDueDate(loan.nextDueDate!)
         : null;
+
     final bool isPartialFinalPayment =
         loan.remainingBalance > 0 &&
         loan.remainingBalance < loan.perPaydayAllocation;
+
     final double paymentAmount = isPartialFinalPayment
         ? loan.remainingBalance
         : loan.perPaydayAllocation;
@@ -234,6 +242,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
     try {
       final String userId = requireCurrentUserId();
       final String newStatus = isFinal ? 'paid' : 'active';
+
       final Map<String, dynamic> updates = <String, dynamic>{
         'paid_paydays': newPaidPaydays,
         'remaining_balance': newBalance,
@@ -254,6 +263,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
         personId: paidByPersonId,
         amount: paymentAmount,
       );
+
       await ActivityLogRepository.instance.createLog(
         targetType: 'loan',
         action: isFinal ? 'marked_paid' : 'payment_recorded',
@@ -267,19 +277,28 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
           'loan_name': loan.name,
           'amount': paymentAmount,
           'paid_paydays': newPaidPaydays,
+          'total_paydays': loan.totalPaydays,
           'remaining_balance': newBalance,
+          'paid_by_person_id': paidByPersonId,
         },
       );
 
       if (!mounted) return;
+
       final LoanModel updatedLoan = loan.copyWith(
         remainingBalance: newBalance,
         status: newStatus,
         paidPaydays: newPaidPaydays,
         nextDueDate: nextDueDate,
       );
+
       loan = updatedLoan;
       widget.onLoanChanged?.call(updatedLoan);
+
+      await _loadContributionSummary();
+
+      if (!mounted) return;
+
       _pop();
     } catch (_) {
       if (!mounted) return;
@@ -291,6 +310,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
   Future<void> _loadPeople() async {
     try {
       final String userId = requireCurrentUserId();
+
       final List<dynamic> rows = await supabase
           .from('people')
           .select('id, name')
@@ -298,6 +318,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
           .order('name');
 
       if (!mounted) return;
+
       setState(() {
         people = rows
             .map(
@@ -313,14 +334,16 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
   }
 
   Future<void> _loadContributionSummary() async {
-    setState(() => isLoadingContributions = true);
+    if (mounted) setState(() => isLoadingContributions = true);
 
     try {
       final String userId = requireCurrentUserId();
+
       final List<dynamic> peopleRows = await supabase
           .from('people')
           .select('id, name')
           .eq('user_id', userId);
+
       final Map<String, String> namesById = <String, String>{
         for (final dynamic row in peopleRows)
           (row as Map<String, dynamic>)['id'].toString(): row['name']
@@ -355,12 +378,22 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
                 ),
               )
               .toList()
-            ..sort(
-              (_LoanContributionSummary a, _LoanContributionSummary b) =>
-                  b.totalAmount.compareTo(a.totalAmount),
-            );
+            ..sort((_LoanContributionSummary a, _LoanContributionSummary b) {
+              final int byPaymentCount = b.paymentCount.compareTo(
+                a.paymentCount,
+              );
+              if (byPaymentCount != 0) return byPaymentCount;
+
+              final int byAmount = b.totalAmount.compareTo(a.totalAmount);
+              if (byAmount != 0) return byAmount;
+
+              return a.personName.toLowerCase().compareTo(
+                b.personName.toLowerCase(),
+              );
+            });
 
       if (!mounted) return;
+
       setState(() {
         contributionSummary = summary;
         isLoadingContributions = false;
@@ -376,6 +409,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
     required double amount,
   }) async {
     final String userId = requireCurrentUserId();
+
     await supabase.from('loan_payment_contributions').insert(<String, dynamic>{
       'user_id': userId,
       'loan_id': loan.id,
@@ -396,6 +430,7 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
 
   void _showMessage(String message) {
     if (!mounted) return;
+
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -439,7 +474,9 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
                 prefillTitle: '${loan.name} payment',
                 prefillDueAt: loan.nextDueDate,
               );
+
               if (result == null) return;
+
               await ActivityLogRepository.instance.createLog(
                 targetType: result.targetType,
                 action: 'reminder_created',
@@ -531,7 +568,8 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
                           '${loan.paidPaydays} of ${loan.totalPaydays} payments completed',
                     ),
                     if (loan.isPaid ||
-                        contributionSummary.isNotEmpty) ...<Widget>[
+                        contributionSummary.isNotEmpty ||
+                        isLoadingContributions) ...<Widget>[
                       const SizedBox(height: 14),
                       Text(
                         'Payment contributors',
@@ -552,11 +590,11 @@ class _LoanDetailsScreenState extends State<LoanDetailsScreen> {
                           ),
                         )
                       else
-                        ...contributionSummary.asMap().entries.map(
-                          (MapEntry<int, _LoanContributionSummary> entry) =>
+                        ...contributionSummary.map(
+                          (_LoanContributionSummary summary) =>
                               _ContributionRow(
-                                summary: entry.value,
-                                isTopContributor: entry.key == 0,
+                                summary: summary,
+                                totalPaydays: loan.totalPaydays,
                               ),
                         ),
                     ],
@@ -706,20 +744,20 @@ class _StatusText extends StatelessWidget {
 }
 
 class _ContributionRow extends StatelessWidget {
-  const _ContributionRow({
-    required this.summary,
-    required this.isTopContributor,
-  });
+  const _ContributionRow({required this.summary, required this.totalPaydays});
 
   final _LoanContributionSummary summary;
-  final bool isTopContributor;
+  final int totalPaydays;
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final String paymentWord = summary.paymentCount == 1
+        ? 'payment'
+        : 'payments';
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -727,56 +765,50 @@ class _ContributionRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Flexible(
-                      child: Text(
-                        summary.personName,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (isTopContributor) ...<Widget>[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            0xFFA7D7B5,
-                          ).withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: const Text(
-                          'Most paid',
-                          style: TextStyle(
-                            color: Color(0xFFA7D7B5),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                Text(
+                  summary.personName,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${summary.paymentCount} payment${summary.paymentCount == 1 ? '' : 's'}',
+                  '${summary.paymentCount} $paymentWord recorded',
                   style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Total: ${CurrencyFormatter.format(summary.totalAmount)}',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            CurrencyFormatter.format(summary.totalAmount),
-            textAlign: TextAlign.right,
-            style: const TextStyle(fontWeight: FontWeight.w900),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.52),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.20),
+              ),
+            ),
+            child: Text(
+              '${summary.paymentCount} of $totalPaydays',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+              ),
+            ),
           ),
         ],
       ),

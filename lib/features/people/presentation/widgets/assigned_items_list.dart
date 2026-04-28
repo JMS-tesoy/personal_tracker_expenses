@@ -147,20 +147,14 @@ class _SectionState extends State<_Section> {
               padding: const EdgeInsets.only(left: 26, bottom: 12),
               child: Text(
                 widget.emptyMessage,
-                style: TextStyle(
-                  color: cs.onSurfaceVariant,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
               ),
             )
           else
             ...widget.items.map(widget.itemBuilder),
           const SizedBox(height: 4),
         ],
-        Divider(
-          height: 1,
-          color: cs.outlineVariant.withValues(alpha: 0.50),
-        ),
+        Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.50)),
         const SizedBox(height: 12),
       ],
     );
@@ -260,8 +254,8 @@ class _AttachmentTile extends StatelessWidget {
       title: name,
       subtitle: deviceName.isNotEmpty
           ? platform.isNotEmpty
-              ? 'Device: $deviceName • $platform'
-              : 'Device: $deviceName'
+                ? 'Device: $deviceName • $platform'
+                : 'Device: $deviceName'
           : null,
       trailing: createdAt.isNotEmpty ? _fmtDate(createdAt) : null,
     );
@@ -316,10 +310,7 @@ class _ItemRow extends StatelessWidget {
                 if (subtitle != null && subtitle!.isNotEmpty)
                   Text(
                     subtitle!,
-                    style: TextStyle(
-                      color: cs.onSurfaceVariant,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                   ),
               ],
             ),
@@ -353,7 +344,9 @@ String _fmtDate(String iso) {
 String _fmtNum(dynamic value) {
   try {
     final double d = double.parse(value.toString());
-    return d.toStringAsFixed(2).replaceAllMapped(
+    return d
+        .toStringAsFixed(2)
+        .replaceAllMapped(
           RegExp(r'(\d)(?=(\d{3})+\.)'),
           (Match m) => '${m[1]},',
         );

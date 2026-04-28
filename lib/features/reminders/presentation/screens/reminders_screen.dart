@@ -37,10 +37,10 @@ class _RemindersScreenState extends State<RemindersScreen>
   Future<void> _load() async {
     setState(() => _isLoading = true);
 
-    final List<ReminderModel> active =
-        await ReminderRepository.instance.getActiveReminders();
-    final List<ReminderModel> history =
-        await ReminderRepository.instance.getHistoryReminders();
+    final List<ReminderModel> active = await ReminderRepository.instance
+        .getActiveReminders();
+    final List<ReminderModel> history = await ReminderRepository.instance
+        .getHistoryReminders();
 
     if (!mounted) return;
     setState(() {

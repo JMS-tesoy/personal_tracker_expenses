@@ -37,15 +37,15 @@ class PersonModel {
 
   factory PersonModel.fromMap(Map<String, dynamic> map) {
     return PersonModel(
-      id:        map['id'] as String,
-      userId:    map['user_id'] as String,
-      name:      map['name'] as String,
-      nickname:  map['nickname'] as String?,
-      phone:     map['phone'] as String?,
-      email:     map['email'] as String?,
-      notes:     map['notes'] as String?,
+      id: map['id'] as String,
+      userId: map['user_id'] as String,
+      name: map['name'] as String,
+      nickname: map['nickname'] as String?,
+      phone: map['phone'] as String?,
+      email: map['email'] as String?,
+      notes: map['notes'] as String?,
       avatarUrl: map['avatar_url'] as String?,
-      role:      map['role'] as String?,
+      role: map['role'] as String?,
       createdAt: DateTime.parse(map['created_at'] as String).toLocal(),
     );
   }
@@ -53,12 +53,12 @@ class PersonModel {
   Map<String, dynamic> toInsertMap() {
     return <String, dynamic>{
       'user_id': userId,
-      'name':    name,
+      'name': name,
       if (nickname != null && nickname!.isNotEmpty) 'nickname': nickname,
-      if (phone != null && phone!.isNotEmpty)       'phone':    phone,
-      if (email != null && email!.isNotEmpty)       'email':    email,
-      if (notes != null && notes!.isNotEmpty)       'notes':    notes,
-      if (role != null && role!.isNotEmpty)         'role':     role,
+      if (phone != null && phone!.isNotEmpty) 'phone': phone,
+      if (email != null && email!.isNotEmpty) 'email': email,
+      if (notes != null && notes!.isNotEmpty) 'notes': notes,
+      if (role != null && role!.isNotEmpty) 'role': role,
     };
   }
 }

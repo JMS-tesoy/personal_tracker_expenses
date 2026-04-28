@@ -30,8 +30,8 @@ class BillCommentModel {
       personId: _emptyToNull(map['person_id']),
       personName: personName,
       message: map['message']?.toString() ?? '',
-      createdAt: DateTime.tryParse(map['created_at']?.toString() ?? '')
-              ?.toLocal() ??
+      createdAt:
+          DateTime.tryParse(map['created_at']?.toString() ?? '')?.toLocal() ??
           DateTime.now(),
       updatedAt: map['updated_at'] != null
           ? DateTime.tryParse(map['updated_at'].toString())?.toLocal()
@@ -39,9 +39,7 @@ class BillCommentModel {
     );
   }
 
-  BillCommentModel copyWith({
-    String? personName,
-  }) {
+  BillCommentModel copyWith({String? personName}) {
     return BillCommentModel(
       id: id,
       userId: userId,
