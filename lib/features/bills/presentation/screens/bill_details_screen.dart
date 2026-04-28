@@ -6,6 +6,7 @@ import '../../../activity/data/repositories/activity_log_repository.dart';
 import '../../../attachments/data/attachment_service.dart';
 import '../../../attachments/domain/attachment.dart';
 import '../../../attachments/presentation/widgets/proof_upload_box.dart';
+import '../../../bill_comments/presentation/widgets/bill_discussion_section.dart';
 import '../../../reminders/presentation/widgets/reminder_form_sheet.dart';
 import '../../domain/bill.dart';
 
@@ -106,6 +107,7 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
                 context,
                 targetType: 'bill',
                 targetId: bill.id,
+                personId: bill.assignedPersonId,
                 prefillTitle: '${bill.name} bill',
                 prefillDueAt: _nextBillDueDate(bill),
               );
@@ -122,6 +124,8 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
                 metadata: <String, dynamic>{
                   'reminder_title': result.title,
                   'remind_at': result.remindAt.toIso8601String(),
+                  'bill_id': bill.id,
+                  'bill_name': bill.name,
                 },
               );
             },
@@ -155,9 +159,12 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
             _DetailRow(label: 'Paid on', value: _formatDate(bill.paidOn!)),
           _DetailRow(label: 'Notes', value: _textOrDash(bill.notes)),
           _DetailRow(label: 'Remarks', value: _textOrDash(bill.remarks)),
+
           const SizedBox(height: 28),
+
           _SectionHeader(title: 'Payment Proof'),
           const SizedBox(height: 12),
+
           if (_loadingAttachments)
             const Center(child: CircularProgressIndicator())
           else if (_attachments.isEmpty)
@@ -180,6 +187,14 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
                 _buildUploadBox(bill),
               ],
             ),
+
+          const SizedBox(height: 28),
+
+          BillDiscussionSection(
+            billId: bill.id,
+            billName: bill.name,
+            defaultPersonId: bill.paidByPersonId ?? bill.assignedPersonId,
+          ),
         ],
       ),
     );
@@ -249,7 +264,7 @@ class _ProofTile extends StatelessWidget {
                           child: CircularProgressIndicator(
                             value: loadingProgress.expectedTotalBytes != null
                                 ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
+                                    loadingProgress.expectedTotalBytes!
                                 : null,
                           ),
                         ),
