@@ -7,3 +7,7 @@
 .env.local
 .env.*.local
 supabase/.temp/.
+
+SUPABASE_MIGRATIONS.md
+
+Notes

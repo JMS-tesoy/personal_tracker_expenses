@@ -80,7 +80,9 @@ key.properties
 supabase/.branches/
 supabase/.temp/
 
-
+SUPABASE_MIGRATIONS.md
 
 /screenshots/
 supabase/failed_pulls/
+
+Notes
