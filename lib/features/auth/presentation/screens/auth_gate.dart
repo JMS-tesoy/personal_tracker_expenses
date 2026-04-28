@@ -17,6 +17,10 @@ class AuthGate extends StatelessWidget {
         final Session? session =
             snapshot.data?.session ?? supabase.auth.currentSession;
 
+        if (snapshot.data?.event == AuthChangeEvent.passwordRecovery) {
+          return const LoginScreen(isPasswordRecovery: true);
+        }
+
         if (session == null) {
           return const LoginScreen();
         }

@@ -81,4 +81,6 @@ supabase/.branches/
 supabase/.temp/
 
 
+
 /screenshots/
+supabase/failed_pulls/
